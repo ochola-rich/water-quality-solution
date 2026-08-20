@@ -139,8 +139,8 @@ func (c *Client) PayInvoice(bolt11Invoice string) (*PaymentStatus, error) {
 
 	url := fmt.Sprintf("%s/api/v1/payments", c.BaseURL)
 	payload := map[string]interface{}{
-		"out":     true,
-		"bolt11":  bolt11Invoice,
+		"out":    true,
+		"bolt11": bolt11Invoice,
 	}
 
 	payloadBytes, err := json.Marshal(payload)

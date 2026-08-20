@@ -21,19 +21,19 @@ const (
 
 // ConsensusResult represents the outcome of a peer verification vote
 type ConsensusResult struct {
-	ReportID            int64               `json:"report_id"`
-	VoteType            models.VoteType     `json:"vote_type"`
-	VerifierID          int64               `json:"verifier_id"`
-	VerifierWeight      float64             `json:"verifier_weight"`
-	DistanceMeters      float64             `json:"distance_meters"`
-	TotalConfirmWeight  float64             `json:"total_confirm_weight"`
-	TotalRejectWeight   float64             `json:"total_reject_weight"`
-	Threshold           float64             `json:"threshold"`
-	PreviousStatus      models.ReportStatus `json:"previous_status"`
-	NewStatus           models.ReportStatus `json:"new_status"`
-	LedgerEntryCreated  bool                `json:"ledger_entry_created"`
-	RewardEligible      bool                `json:"reward_eligible"`
-	LedgerEntry         *models.LedgerEntry `json:"ledger_entry,omitempty"`
+	ReportID           int64               `json:"report_id"`
+	VoteType           models.VoteType     `json:"vote_type"`
+	VerifierID         int64               `json:"verifier_id"`
+	VerifierWeight     float64             `json:"verifier_weight"`
+	DistanceMeters     float64             `json:"distance_meters"`
+	TotalConfirmWeight float64             `json:"total_confirm_weight"`
+	TotalRejectWeight  float64             `json:"total_reject_weight"`
+	Threshold          float64             `json:"threshold"`
+	PreviousStatus     models.ReportStatus `json:"previous_status"`
+	NewStatus          models.ReportStatus `json:"new_status"`
+	LedgerEntryCreated bool                `json:"ledger_entry_created"`
+	RewardEligible     bool                `json:"reward_eligible"`
+	LedgerEntry        *models.LedgerEntry `json:"ledger_entry,omitempty"`
 }
 
 // RewardProcessor defines an interface for triggering reward payouts when consensus is reached
@@ -282,12 +282,12 @@ func (ce *ConsensusEngine) SubmitVote(reportID int64, verifierID int64, vote mod
 		// Still Pending / In Progress
 		if ce.Hub != nil {
 			ce.Hub.Broadcast("verification:vote", map[string]interface{}{
-				"report_id":       report.ID,
-				"verifier_id":     verifierID,
-				"vote":            vote,
-				"confirm_weight":  totalConfirmWeight,
-				"reject_weight":   totalRejectWeight,
-				"threshold":       ce.Threshold,
+				"report_id":      report.ID,
+				"verifier_id":    verifierID,
+				"vote":           vote,
+				"confirm_weight": totalConfirmWeight,
+				"reject_weight":  totalRejectWeight,
+				"threshold":      ce.Threshold,
 			})
 		}
 	}
