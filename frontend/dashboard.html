@@ -3,155 +3,479 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Lake Overview - Guardians of the Lake</title>
+  <title>Guardians of the Lake - Environmental Intelligence</title>
 
+  <!-- Typography & Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@600;700&family=JetBrains+Mono:wght@500;600&family=Work+Sans:wght@400;500&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@600;700&family=JetBrains+Mono:wght@500;600&family=Work+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
-  <script src="https://cdn.tailwindcss.com"></script>
-</head>
-<body class="bg-[#f8f9ff] text-[#0d1c2e] font-sans antialiased flex min-h-screen">
 
-  <!-- Sidebar -->
-  <aside class="w-64 bg-white border-r border-[#eff4ff] p-6 flex flex-col fixed h-full z-20 hidden md:flex">
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: "#002546",
+            "primary-container": "#0d3b66",
+            secondary: "#007354",
+            "secondary-container": "#99f5cd",
+            error: "#ba1a1a",
+            "error-container": "#ffdad6",
+            "surface-bg": "#f8f9ff",
+            surface: "#ffffff",
+            "surface-low": "#eff4ff",
+            "surface-high": "#dce9ff",
+            outline: "#737780"
+          },
+          fontFamily: {
+            headline: ["Hanken Grotesk", "sans-serif"],
+            body: ["Work Sans", "sans-serif"],
+            mono: ["JetBrains Mono", "monospace"]
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="bg-surface-bg text-[#0d1c2e] font-body antialiased flex min-h-screen">
+
+  <!-- Persistent Sidebar -->
+  <aside class="w-64 bg-white border-r border-surface-low p-6 flex flex-col fixed h-full z-30 hidden md:flex">
+    <!-- Brand -->
     <div class="flex items-center gap-3 mb-8">
-      <img src="https://images.unsplash.com/photo-1544551763-46a013bb70d5?auto=format&fit=crop&w=100&q=80" alt="Logo" class="w-10 h-10 rounded-lg object-cover" />
+      <img src="https://images.unsplash.com/photo-1544551763-46a013bb70d5?auto=format&fit=crop&w=100&q=80" alt="Logo" class="w-10 h-10 rounded-xl object-cover" />
       <div>
-        <h1 class="font-bold text-sm text-[#002546]">Guardians of the Lake</h1>
-        <p class="font-mono text-xs text-[#737780]">Environmental Intelligence</p>
+        <h1 class="font-headline font-bold text-sm text-primary leading-tight">Guardians of the Lake</h1>
+        <p class="font-mono text-[11px] text-outline">Environmental Intelligence</p>
       </div>
     </div>
 
-    <nav class="flex flex-col gap-2 flex-1 font-mono text-sm">
-      <a href="dashboard.html" class="flex items-center gap-3 px-3 py-2.5 rounded bg-[#dce9ff] text-[#002546] font-bold border-r-4 border-[#002546]">
-        <span class="material-symbols-outlined">dashboard</span> Overview
-      </a>
-      <a href="verify.html" class="flex items-center gap-3 px-3 py-2.5 rounded text-[#42474f] hover:bg-[#eff4ff] transition-colors">
-        <span class="material-symbols-outlined">fact_check</span> Verify Reports
-      </a>
+    <!-- Working Navigation Tabs -->
+    <nav class="flex flex-col gap-1.5 flex-1 font-mono text-xs font-bold">
+      <button data-tab="overview" class="nav-btn flex items-center gap-3 px-3 py-2.5 rounded-xl bg-surface-high text-primary border-r-4 border-primary transition-all text-left w-full cursor-pointer">
+        <span class="material-symbols-outlined text-[18px]">dashboard</span>
+        <span>Overview</span>
+      </button>
+      <button data-tab="verify" class="nav-btn flex items-center gap-3 px-3 py-2.5 rounded-xl text-outline hover:bg-surface-low transition-all text-left w-full cursor-pointer">
+        <span class="material-symbols-outlined text-[18px]">fact_check</span>
+        <span>Verify Reports</span>
+        <span id="sidebar-pending-badge" class="ml-auto bg-error-container text-[#93000a] px-2 py-0.5 rounded-full text-[10px]">3</span>
+      </button>
+      <button data-tab="map" class="nav-btn flex items-center gap-3 px-3 py-2.5 rounded-xl text-outline hover:bg-surface-low transition-all text-left w-full cursor-pointer">
+        <span class="material-symbols-outlined text-[18px]">map</span>
+        <span>Environmental Map</span>
+      </button>
+      <button data-tab="alerts" class="nav-btn flex items-center gap-3 px-3 py-2.5 rounded-xl text-outline hover:bg-surface-low transition-all text-left w-full cursor-pointer">
+        <span class="material-symbols-outlined text-[18px]">notifications_active</span>
+        <span>Alerts & Export</span>
+      </button>
     </nav>
 
-    <button id="export-csv-btn" class="w-full bg-[#002546] text-white py-2.5 px-4 rounded-xl font-mono text-xs font-bold hover:bg-[#0d3b66] transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm">
-      <span class="material-symbols-outlined text-sm">download</span> Export Data
-    </button>
+    <!-- Sidebar Bottom Export Action -->
+    <div class="mt-auto pt-4 border-t border-surface-low">
+      <button id="sidebar-quick-export" class="w-full bg-primary text-white py-2.5 px-4 rounded-xl font-mono text-xs font-bold hover:bg-primary-container transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm">
+        <span class="material-symbols-outlined text-[16px]">download</span>
+        <span>Export Data</span>
+      </button>
+    </div>
   </aside>
 
-  <!-- Main Content -->
-  <main class="flex-1 md:ml-64 p-6 md:p-8 max-w-7xl mx-auto w-full space-y-6">
-    <div class="flex justify-between items-center">
-      <div>
-        <h2 class="text-3xl font-bold text-[#002546]">Lake Overview</h2>
-        <p class="text-sm text-[#42474f] mt-1">Real-time environmental intelligence and monitoring.</p>
+  <!-- Main View Container -->
+  <div class="flex-1 flex flex-col min-w-0 md:ml-64 bg-surface-bg">
+    <!-- Top Header -->
+    <header class="h-16 bg-surface-bg border-b border-surface-low flex justify-between items-center px-8 sticky top-0 z-20">
+      <div class="font-headline font-bold text-primary md:hidden">Guardians of the Lake</div>
+      <div class="hidden md:block"></div>
+      <div class="flex items-center gap-4">
+        <!-- LIVE Badge -->
+        <div class="flex items-center gap-1.5 bg-error-container text-[#93000a] px-3 py-1 rounded-full">
+          <span class="w-2 h-2 rounded-full bg-error animate-ping"></span>
+          <span class="font-mono text-[11px] font-bold tracking-wider">● LIVE</span>
+        </div>
+        <button class="p-2 text-outline hover:text-primary rounded-full hover:bg-surface-low"><span class="material-symbols-outlined">notifications</span></button>
+        <button class="p-2 text-outline hover:text-primary rounded-full hover:bg-surface-low"><span class="material-symbols-outlined">settings</span></button>
+        <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80" alt="Avatar" class="w-8 h-8 rounded-full border border-surface-high object-cover" />
       </div>
-      <div class="flex items-center gap-2 bg-[#ffdad6] text-[#93000a] px-3 py-1 rounded-full font-mono text-xs font-bold">
-        <span class="w-2 h-2 rounded-full bg-[#ba1a1a] animate-pulse"></span>
-        <span id="ws-status">LIVE STREAM</span>
-      </div>
-    </div>
+    </header>
 
-    <!-- Bento Grid -->
-    <div class="grid grid-cols-1 md:grid-cols-12 gap-5">
-      
-      <!-- Overall Health Score Card (8 Cols) -->
-      <div class="md:col-span-8 bg-white rounded-2xl p-6 shadow-sm border border-[#eff4ff] flex flex-col md:flex-row items-center justify-between gap-6">
+    <!-- Main Dynamic Content Screens -->
+    <main class="p-6 md:p-8 max-w-7xl mx-auto w-full">
+
+      <!-- ================= 1. OVERVIEW SCREEN ================= -->
+      <section id="screen-overview" class="tab-screen space-y-6">
         <div>
-          <span class="font-mono text-xs text-[#737780] uppercase tracking-wider block mb-1">OVERALL HEALTH SCORE</span>
-          <div class="flex items-baseline gap-2">
-            <span id="health-score-val" class="text-6xl font-bold text-[#002546]">72</span>
-            <span class="text-xl text-gray-400 font-bold">/100</span>
-          </div>
-          <div class="flex items-center gap-3 mt-4">
-            <span class="bg-[#99f5cd] text-[#007354] px-3 py-1 rounded-full font-mono text-xs font-bold flex items-center gap-1">
-              <span class="material-symbols-outlined text-xs">trending_up</span> +6% Trend
-            </span>
-            <span class="text-xs text-gray-500 font-medium">Status: <strong class="text-[#002546]">Moderate</strong></span>
-          </div>
+          <h2 class="font-headline text-3xl font-bold text-primary">Lake Overview</h2>
+          <p class="text-sm text-outline mt-1">Real-time environmental intelligence and monitoring.</p>
         </div>
 
-        <div class="w-40 h-40 relative flex items-center justify-center">
-          <svg class="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
-            <circle cx="50" cy="50" r="40" fill="none" stroke="#eff4ff" stroke-width="6"></circle>
-            <circle id="gauge-circle" cx="50" cy="50" r="40" fill="none" stroke="#007354" stroke-width="8" stroke-linecap="round" stroke-dasharray="251.32" stroke-dashoffset="70.3"></circle>
-          </svg>
-          <div class="absolute inset-0 flex flex-col items-center justify-center">
-            <span class="material-symbols-outlined text-[#007354] text-3xl">water_drop</span>
-            <span class="font-mono text-xs font-bold text-[#002546]">Stable</span>
-          </div>
-        </div>
-      </div>
+        <div class="grid grid-cols-1 md:grid-cols-12 gap-5">
+          <!-- Overall Health Score Card (8 Cols) -->
+          <div class="md:col-span-8 bg-white rounded-2xl p-6 shadow-sm border border-surface-low flex flex-col md:flex-row items-center justify-between gap-6">
+            <div>
+              <span class="font-mono text-xs text-outline uppercase tracking-wider block mb-1">OVERALL HEALTH SCORE</span>
+              <div class="flex items-baseline gap-2">
+                <span id="ov-health-score" class="font-headline text-6xl font-bold text-primary">72</span>
+                <span class="text-xl text-outline font-bold">/100</span>
+              </div>
+              <div class="flex items-center gap-3 mt-4">
+                <span class="bg-secondary-container text-secondary px-3 py-1 rounded-full font-mono text-xs font-bold flex items-center gap-1">
+                  <span class="material-symbols-outlined text-xs">trending_up</span> +6% Trend
+                </span>
+                <span class="text-xs text-outline font-medium">Status: <strong class="text-primary font-bold">Moderate</strong></span>
+              </div>
+            </div>
 
-      <!-- Stats Grid (4 Cols) -->
-      <div class="md:col-span-4 grid grid-cols-2 gap-4">
-        <div class="bg-white rounded-2xl p-4 shadow-sm border border-[#eff4ff]">
-          <span class="font-mono text-xs text-gray-400 block uppercase">TOTAL REPORTS</span>
-          <div class="text-3xl font-bold text-[#002546] mt-2">1,240</div>
-        </div>
-        <div class="bg-white rounded-2xl p-4 shadow-sm border border-[#eff4ff] border-l-4 border-l-[#007354]">
-          <span class="font-mono text-xs text-gray-400 block uppercase">VERIFIED</span>
-          <div class="text-3xl font-bold text-[#007354] mt-2">892</div>
-        </div>
-        <div class="bg-white rounded-2xl p-4 shadow-sm border border-[#eff4ff] border-l-4 border-l-[#5c2d00]">
-          <span class="font-mono text-xs text-gray-400 block uppercase">PENDING</span>
-          <div class="text-3xl font-bold text-[#5c2d00] mt-2">48</div>
-        </div>
-        <div class="bg-white rounded-2xl p-4 shadow-sm border border-[#eff4ff] border-l-4 border-l-[#ba1a1a]">
-          <span class="font-mono text-xs text-gray-400 block uppercase">ACTIVE ALERTS</span>
-          <div class="text-3xl font-bold text-[#ba1a1a] mt-2">5</div>
-        </div>
-      </div>
-
-      <!-- Kisumu Hotspots Map (8 Cols) -->
-      <div class="md:col-span-8 bg-white rounded-2xl shadow-sm border border-[#eff4ff] h-[420px] flex flex-col overflow-hidden">
-        <div class="px-5 py-3 border-b border-[#eff4ff] flex justify-between items-center">
-          <h3 class="font-bold text-base text-[#002546]">Kisumu Gulf Hotspots</h3>
-          <a href="verify.html" class="text-xs font-mono font-bold text-[#002546] hover:underline">View All Pins</a>
-        </div>
-        <div class="flex-1 relative bg-cover bg-center" style="background-image: url('https://images.unsplash.com/photo-1544551763-46a013bb70d5?auto=format&fit=crop&w=800&q=80')">
-          <div class="absolute top-[35%] left-[45%] group cursor-pointer" onclick="alert('Critical Algae Bloom - DO: 3.1 mg/L')">
-            <div class="w-6 h-6 rounded-full bg-[#ba1a1a] border-2 border-white shadow-lg group-hover:scale-125 transition-transform"></div>
-          </div>
-          <div class="absolute top-[50%] left-[30%] group cursor-pointer" onclick="alert('Turbidity Plume - 48.6 NTU')">
-            <div class="w-6 h-6 rounded-full bg-[#5c2d00] border-2 border-white shadow-lg group-hover:scale-125 transition-transform"></div>
-          </div>
-          <div class="absolute top-[60%] left-[65%] group cursor-pointer" onclick="alert('Clean Inflow Sanctuary')">
-            <div class="w-6 h-6 rounded-full bg-[#007354] border-2 border-white shadow-lg group-hover:scale-125 transition-transform"></div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Recent Activity Stream (4 Cols) -->
-      <div class="md:col-span-4 bg-white rounded-2xl shadow-sm border border-[#eff4ff] h-[420px] flex flex-col">
-        <div class="px-5 py-3 border-b border-[#eff4ff]">
-          <h3 class="font-bold text-base text-[#002546]">Recent Activity</h3>
-        </div>
-        <div class="flex-1 overflow-y-auto p-4 space-y-3 divide-y divide-[#eff4ff]">
-          <div class="pt-2 flex gap-3">
-            <span class="material-symbols-outlined text-[#ba1a1a] text-sm mt-0.5">campaign</span>
-            <div class="text-xs">
-              <p><strong>High turbidity</strong> reported near Dunga Beach.</p>
-              <span class="text-gray-400 font-mono mt-1 block">10 mins ago • Unverified</span>
+            <!-- Gauge SVG -->
+            <div class="w-40 h-40 relative flex items-center justify-center">
+              <svg class="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+                <circle cx="50" cy="50" r="40" fill="none" stroke="#eff4ff" stroke-width="6"></circle>
+                <circle id="ov-gauge-circle" cx="50" cy="50" r="40" fill="none" stroke="#007354" stroke-width="8" stroke-linecap="round" stroke-dasharray="251.32" stroke-dashoffset="70.3"></circle>
+              </svg>
+              <div class="absolute inset-0 flex flex-col items-center justify-center">
+                <span class="material-symbols-outlined text-secondary text-3xl">water_drop</span>
+                <span class="font-mono text-xs font-bold text-primary">Stable</span>
+              </div>
             </div>
           </div>
-          <div class="pt-2 flex gap-3">
-            <span class="material-symbols-outlined text-[#007354] text-sm mt-0.5">verified</span>
-            <div class="text-xs">
-              <p>Report #8492 <strong>verified</strong> by local station.</p>
-              <span class="text-gray-400 font-mono mt-1 block">45 mins ago • System</span>
+
+          <!-- Quick Stats Grid (4 Cols) -->
+          <div class="md:col-span-4 grid grid-cols-2 gap-4">
+            <div class="bg-white rounded-2xl p-4 shadow-sm border border-surface-low">
+              <span class="font-mono text-[11px] text-outline block uppercase">TOTAL REPORTS</span>
+              <div class="font-headline text-3xl font-bold text-primary mt-2">1,240</div>
+            </div>
+            <div class="bg-white rounded-2xl p-4 shadow-sm border border-surface-low border-l-4 border-l-secondary">
+              <span class="font-mono text-[11px] text-outline block uppercase">VERIFIED</span>
+              <div class="font-headline text-3xl font-bold text-secondary mt-2">892</div>
+            </div>
+            <div class="bg-white rounded-2xl p-4 shadow-sm border border-surface-low border-l-4 border-l-[#5c2d00]">
+              <span class="font-mono text-[11px] text-outline block uppercase">PENDING</span>
+              <div class="font-headline text-3xl font-bold text-[#5c2d00] mt-2">48</div>
+            </div>
+            <div class="bg-white rounded-2xl p-4 shadow-sm border border-surface-low border-l-4 border-l-error">
+              <span class="font-mono text-[11px] text-outline block uppercase">ACTIVE ALERTS</span>
+              <div class="font-headline text-3xl font-bold text-error mt-2">5</div>
             </div>
           </div>
-          <div class="pt-2 flex gap-3">
-            <span class="material-symbols-outlined text-[#002546] text-sm mt-0.5">science</span>
-            <div class="text-xs">
-              <p>Routine water sample collected at Site A.</p>
-              <span class="text-gray-400 font-mono mt-1 block">2 hours ago • Field Team</span>
+
+          <!-- Hotspots Preview Map (8 Cols) -->
+          <div class="md:col-span-8 bg-white rounded-2xl shadow-sm border border-surface-low h-[420px] flex flex-col overflow-hidden">
+            <div class="px-5 py-3 border-b border-surface-low flex justify-between items-center bg-surface-bg">
+              <h3 class="font-headline text-base font-bold text-primary">Kisumu Gulf Hotspots</h3>
+              <button onclick="window.switchTab('map')" class="text-xs font-mono font-bold text-primary hover:underline flex items-center gap-1 cursor-pointer">
+                <span class="material-symbols-outlined text-sm">open_in_full</span> Expand Map
+              </button>
+            </div>
+            <div class="flex-1 relative bg-cover bg-center" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDaP7M1iz0dKuEyvxUkX12RA23RnlQsJNMkTfUZOTHpE20o-ZEAOjtnMfpsDsuHam8OeZpsYdW9Dpb-dkgjgN2URDx_eK4VKrBaYCxvSPymrSz3QzsYCZ5swYVbOjWIirvRNXO38DxQwUk4XPrS4XoZ3XyOyV5dFcQUe_zxEZ-49MpDUSZ0_imsuasSiguWziaufUwgML_v1lxV5CRx68LuNFTCL9yFxffLk2lLd6C-ibaFMMLTEGoRaA')">
+              <div onclick="window.switchTab('map')" class="absolute top-[35%] left-[45%] group cursor-pointer">
+                <div class="w-6 h-6 rounded-full bg-error border-2 border-white shadow-lg group-hover:scale-125 transition-transform"></div>
+              </div>
+              <div onclick="window.switchTab('map')" class="absolute top-[50%] left-[30%] group cursor-pointer">
+                <div class="w-6 h-6 rounded-full bg-[#5c2d00] border-2 border-white shadow-lg group-hover:scale-125 transition-transform"></div>
+              </div>
+              <div onclick="window.switchTab('map')" class="absolute top-[60%] left-[65%] group cursor-pointer">
+                <div class="w-6 h-6 rounded-full bg-secondary border-2 border-white shadow-lg group-hover:scale-125 transition-transform"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Recent Activity Stream (4 Cols) -->
+          <div class="md:col-span-4 bg-white rounded-2xl shadow-sm border border-surface-low h-[420px] flex flex-col">
+            <div class="px-5 py-3 border-b border-surface-low bg-surface-bg flex justify-between items-center">
+              <h3 class="font-headline text-base font-bold text-primary">Recent Activity</h3>
+            </div>
+            <div class="flex-1 overflow-y-auto p-4 space-y-3 divide-y divide-surface-low">
+              <div onclick="window.switchTab('verify')" class="pt-2 flex gap-3 cursor-pointer hover:bg-surface-low p-1.5 rounded transition-colors">
+                <span class="material-symbols-outlined text-error text-base mt-0.5">campaign</span>
+                <div class="text-xs">
+                  <p class="text-primary font-medium"><strong>High turbidity</strong> reported near Dunga Beach.</p>
+                  <span class="text-outline font-mono text-[10px] mt-1 block">10 mins ago • Unverified</span>
+                </div>
+              </div>
+              <div onclick="window.switchTab('verify')" class="pt-2 flex gap-3 cursor-pointer hover:bg-surface-low p-1.5 rounded transition-colors">
+                <span class="material-symbols-outlined text-secondary text-base mt-0.5">verified</span>
+                <div class="text-xs">
+                  <p class="text-primary font-medium">Report #8492 <strong>verified</strong> by local station.</p>
+                  <span class="text-outline font-mono text-[10px] mt-1 block">45 mins ago • System</span>
+                </div>
+              </div>
+              <div class="pt-2 flex gap-3 p-1.5">
+                <span class="material-symbols-outlined text-primary text-base mt-0.5">science</span>
+                <div class="text-xs">
+                  <p class="text-primary font-medium">Routine water sample collected at Site A.</p>
+                  <span class="text-outline font-mono text-[10px] mt-1 block">2 hours ago • Field Team</span>
+                </div>
+              </div>
+              <div class="pt-2 flex gap-3 p-1.5">
+                <span class="material-symbols-outlined text-primary text-base mt-0.5">science</span>
+                <div class="text-xs">
+                  <p class="text-primary font-medium">Routine water sample collected at Site B.</p>
+                  <span class="text-outline font-mono text-[10px] mt-1 block">3 hours ago • Field Team</span>
+                </div>
+              </div>
+            </div>
+            <div class="p-3 border-t border-surface-low text-center bg-surface-bg/50">
+              <button onclick="window.switchTab('verify')" class="font-mono text-xs font-bold text-primary hover:underline cursor-pointer">View All Activity</button>
             </div>
           </div>
         </div>
-      </div>
+      </section>
 
-    </div>
-  </main>
+      <!-- ================= 2. VERIFY REPORTS SCREEN ================= -->
+      <section id="screen-verify" class="tab-screen hidden space-y-6">
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div class="relative w-full sm:w-80">
+            <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-[18px]">search</span>
+            <input id="verify-search" type="text" placeholder="Search reports..." class="w-full bg-white pl-9 pr-4 py-2 rounded-xl text-xs text-primary border border-surface-low focus:outline-none focus:border-primary shadow-sm" />
+          </div>
+          <div class="bg-error-container text-[#93000a] px-3 py-1 rounded-full font-mono text-xs font-bold flex items-center gap-1.5">
+            <span class="w-2 h-2 rounded-full bg-error animate-pulse"></span>
+            <span id="verify-pending-badge">3 Pending Review</span>
+          </div>
+        </div>
+
+        <div>
+          <h2 class="font-headline text-3xl font-bold text-primary">Pending Verifications</h2>
+          <p class="text-sm text-outline mt-1">Review and classify incoming environmental reports from field sensors and community uploads.</p>
+        </div>
+
+        <div id="verify-feedback" class="hidden p-3.5 rounded-xl font-medium text-xs"></div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+          <!-- Feed Cards (7 Cols) -->
+          <div id="verify-cards-container" class="lg:col-span-7 space-y-4"></div>
+
+          <!-- Contextual Map Side Stage (5 Cols) -->
+          <div class="lg:col-span-5 bg-white rounded-2xl p-5 border border-surface-low shadow-sm space-y-3 sticky top-20">
+            <div class="flex justify-between items-center">
+              <h3 class="font-headline text-base font-bold text-primary">Contextual Map</h3>
+              <span class="text-xs font-mono text-outline">Lake Victoria Basin</span>
+            </div>
+            <div class="relative h-60 rounded-xl overflow-hidden bg-surface-low border border-surface-low">
+              <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuDaP7M1iz0dKuEyvxUkX12RA23RnlQsJNMkTfUZOTHpE20o-ZEAOjtnMfpsDsuHam8OeZpsYdW9Dpb-dkgjgN2URDx_eK4VKrBaYCxvSPymrSz3QzsYCZ5swYVbOjWIirvRNXO38DxQwUk4XPrS4XoZ3XyOyV5dFcQUe_zxEZ-49MpDUSZ0_imsuasSiguWziaufUwgML_v1lxV5CRx68LuNFTCL9yFxffLk2lLd6C-ibaFMMLTEGoRaA" alt="Contextual Map" class="w-full h-full object-cover" />
+              <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center">
+                <div class="w-5 h-5 rounded-full bg-error border-2 border-white shadow-lg animate-ping absolute"></div>
+                <div class="w-5 h-5 rounded-full bg-error border-2 border-white shadow-lg z-10 flex items-center justify-center">
+                  <span class="w-2 h-2 rounded-full bg-white"></span>
+                </div>
+                <span id="context-location-tag" class="bg-white/95 text-primary font-mono text-[9px] font-bold px-2 py-0.5 rounded shadow mt-1 whitespace-nowrap">Dunga Beach Pier</span>
+              </div>
+              <div class="absolute bottom-2 left-2 right-2 bg-white/95 backdrop-blur-xs p-2 rounded-lg text-xs font-mono flex justify-between shadow-sm">
+                <span class="text-outline">Nearby Assets</span>
+                <span class="text-secondary font-bold flex items-center gap-1">● Drone Patrol 2 (1.2km)</span>
+              </div>
+            </div>
+
+            <!-- Sensor Dossier -->
+            <div id="verify-sensor-dossier" class="pt-2 border-t border-surface-low space-y-2">
+              <div class="flex justify-between items-center">
+                <span class="font-mono text-xs text-outline uppercase">Sensor Dossier</span>
+                <span id="dossier-report-no" class="font-mono text-xs font-bold text-primary">#8492</span>
+              </div>
+              <div class="grid grid-cols-2 gap-2 text-xs font-mono">
+                <div class="bg-surface-bg p-2.5 rounded-xl border border-surface-low">
+                  <span class="text-outline text-[10px] block">Turbidity Index</span>
+                  <span id="dossier-turbidity" class="font-bold text-primary">48.6 NTU</span>
+                </div>
+                <div class="bg-surface-bg p-2.5 rounded-xl border border-surface-low">
+                  <span class="text-outline text-[10px] block">Dissolved Oxygen</span>
+                  <span id="dossier-do" class="font-bold text-primary">4.1 mg/L</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= 3. ENVIRONMENTAL MAP SCREEN ================= -->
+      <section id="screen-map" class="tab-screen hidden space-y-4">
+        <div class="relative w-full h-[calc(100vh-140px)] min-h-[580px] rounded-3xl overflow-hidden border border-surface-low shadow-sm flex">
+          <!-- Interactive GIS Map Stage -->
+          <div class="flex-1 relative bg-[#c2e4ea] overflow-hidden select-none">
+            <div class="absolute inset-0 bg-cover bg-center" style="backgroundImage: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDaP7M1iz0dKuEyvxUkX12RA23RnlQsJNMkTfUZOTHpE20o-ZEAOjtnMfpsDsuHam8OeZpsYdW9Dpb-dkgjgN2URDx_eK4VKrBaYCxvSPymrSz3QzsYCZ5swYVbOjWIirvRNXO38DxQwUk4XPrS4XoZ3XyOyV5dFcQUe_zxEZ-49MpDUSZ0_imsuasSiguWziaufUwgML_v1lxV5CRx68LuNFTCL9yFxffLk2lLd6C-ibaFMMLTEGoRaA'); filter: brightness(0.96) contrast(1.05);"></div>
+
+            <!-- Landmarks -->
+            <div class="absolute top-[48%] left-[45%] text-[#2d6a7e] font-sans text-xs font-semibold pointer-events-none drop-shadow-sm flex flex-col items-center">
+              <span class="material-symbols-outlined text-xs">forest</span> Sleepy Hollow State Park
+            </div>
+            <div class="absolute top-[52%] left-[60%] text-primary font-headline text-lg font-bold pointer-events-none drop-shadow-md">
+              Lake Victoria
+            </div>
+
+            <!-- Hotspot Pins -->
+            <div onclick="window.selectMapHotspot('Chemical Spill Detected', 'Sector 4, Near Kisumu Port', '8.4', '2.1', 'critical')" class="absolute top-[68%] left-[68%] transform -translate-x-1/2 -translate-y-1/2 cursor-pointer z-10 group">
+              <div class="absolute -inset-3 rounded-full bg-error animate-ping opacity-60"></div>
+              <div class="w-7 h-7 rounded-full bg-error border-2 border-white shadow-lg flex items-center justify-center group-hover:scale-125 transition-transform"><span class="w-2 h-2 rounded-full bg-white"></span></div>
+            </div>
+            <div onclick="window.selectMapHotspot('Algae Bloom Outbreak', 'Dunga Beach Pier', '6.8', '1.4', 'medium')" class="absolute top-[40%] left-[48%] transform -translate-x-1/2 -translate-y-1/2 cursor-pointer z-10 group">
+              <div class="w-7 h-7 rounded-full bg-secondary border-2 border-white shadow-lg flex items-center justify-center group-hover:scale-125 transition-transform"><span class="w-2 h-2 rounded-full bg-white"></span></div>
+            </div>
+            <div onclick="window.selectMapHotspot('Turbidity Siltation Plume', 'Nyando Inflow', '5.2', '3.8', 'low')" class="absolute top-[55%] left-[62%] transform -translate-x-1/2 -translate-y-1/2 cursor-pointer z-10 group">
+              <div class="w-7 h-7 rounded-full bg-[#5c2d00] border-2 border-white shadow-lg flex items-center justify-center group-hover:scale-125 transition-transform"><span class="w-2 h-2 rounded-full bg-white"></span></div>
+            </div>
+
+            <!-- Bottom Left Intelligence Layers -->
+            <div class="absolute bottom-6 left-6 bg-white/95 backdrop-blur-md p-4 rounded-2xl border border-surface-low shadow-md z-20 w-48 space-y-2">
+              <h4 class="font-mono text-[10px] uppercase font-bold text-outline tracking-wider">Intelligence Layers</h4>
+              <div class="space-y-1.5 text-xs font-medium">
+                <label class="flex items-center gap-2"><span class="w-3 h-3 rounded-full bg-secondary"></span> <span>Algae Bloom</span></label>
+                <label class="flex items-center gap-2"><span class="w-3 h-3 rounded-full bg-[#5c2d00]"></span> <span>Turbidity Issue</span></label>
+                <label class="flex items-center gap-2"><span class="w-3 h-3 rounded-full bg-error"></span> <span>Chemical Spill</span></label>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right Floating Incident Inspector Panel -->
+          <div class="w-80 md:w-96 bg-white border-l border-surface-low h-full flex flex-col z-20 shadow-xl overflow-y-auto p-6 space-y-5">
+            <div>
+              <span class="font-mono text-[11px] font-bold text-error uppercase tracking-wider">CRITICAL INCIDENT</span>
+              <h3 id="map-inspect-title" class="font-headline text-xl font-bold text-primary mt-1">Chemical Spill Detected</h3>
+              <p id="map-inspect-location" class="text-xs text-outline font-mono mt-0.5">Sector 4, Near Kisumu Port</p>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+              <div class="bg-surface-bg p-3.5 rounded-xl border border-surface-low">
+                <span class="font-mono text-[10px] text-outline uppercase block">SEVERITY INDEX</span>
+                <span id="map-inspect-severity" class="font-headline text-2xl font-bold text-error mt-1 block">8.4</span>
+              </div>
+              <div class="bg-surface-bg p-3.5 rounded-xl border border-surface-low">
+                <span class="font-mono text-[10px] text-outline uppercase block">EST. COVERAGE</span>
+                <div class="flex items-baseline gap-1 mt-1">
+                  <span id="map-inspect-coverage" class="font-headline text-2xl font-bold text-primary">2.1</span>
+                  <span class="text-xs font-mono text-outline">km²</span>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <span class="font-mono text-[10px] text-outline uppercase block mb-1.5">VERIFICATION STATUS</span>
+              <div class="bg-error-container text-[#93000a] p-3 rounded-xl flex items-center gap-2 text-xs font-mono font-bold">
+                <span class="material-symbols-outlined text-[18px]">error</span>
+                <span>Unverified - Ground Team Dispatched</span>
+              </div>
+            </div>
+
+            <div>
+              <div class="flex justify-between items-center mb-2">
+                <span class="font-mono text-[10px] text-outline uppercase">LATEST SATELLITE CAPTURE</span>
+                <span class="font-mono text-[10px] text-outline">14 mins ago</span>
+              </div>
+              <div class="grid grid-cols-3 gap-2">
+                <img src="https://images.unsplash.com/photo-1544551763-46a013bb70d5?auto=format&fit=crop&w=200&q=80" alt="Capture 1" class="h-16 rounded-lg object-cover border border-surface-low" />
+                <img src="https://images.unsplash.com/photo-1576086213369-97a306d36557?auto=format&fit=crop&w=200&q=80" alt="Capture 2" class="h-16 rounded-lg object-cover border border-surface-low" />
+                <img src="https://images.unsplash.com/photo-1611273426858-450d8e3c9fce?auto=format&fit=crop&w=200&q=80" alt="Capture 3" class="h-16 rounded-lg object-cover border border-surface-low" />
+              </div>
+            </div>
+
+            <div class="mt-auto pt-4">
+              <button onclick="alert('Ground team status memo updated in telemetry stream!')" class="w-full bg-primary text-white py-3 rounded-xl font-mono text-xs font-bold hover:bg-primary-container transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md">
+                <span class="material-symbols-outlined text-[16px]">verified</span> Update Status
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= 4. ALERTS & DATA EXPORT SCREEN ================= -->
+      <section id="screen-alerts" class="tab-screen hidden space-y-6">
+        <div>
+          <h2 class="font-headline text-3xl font-bold text-primary">Data Export Center</h2>
+          <p class="text-sm text-outline mt-1">Configure parameters to generate structured environmental datasets.</p>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+          <!-- Export Parameters (5 Cols) -->
+          <div class="lg:col-span-5 bg-white rounded-2xl p-6 border border-surface-low shadow-sm space-y-5">
+            <div class="border-b border-surface-low pb-3">
+              <span class="font-mono text-[10px] text-outline uppercase block">CONFIGURATION</span>
+              <h3 class="font-headline text-lg font-bold text-primary mt-0.5">Export Parameters</h3>
+            </div>
+
+            <div>
+              <label class="block font-headline text-xs font-bold text-primary mb-1.5">Date Range</label>
+              <select id="export-range" class="w-full bg-surface-bg text-primary text-xs p-3 rounded-xl border border-surface-low outline-none">
+                <option value="30d">Last 30 Days</option>
+                <option value="7d">Last 7 Days</option>
+                <option value="90d">Last 90 Days</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="block font-headline text-xs font-bold text-primary mb-2">Data Categories</label>
+              <div class="bg-surface-bg p-4 rounded-xl border border-surface-low space-y-2.5 text-xs">
+                <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked class="w-4 h-4 text-primary rounded" /> <span class="font-medium">Algae Blooms</span></label>
+                <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked class="w-4 h-4 text-primary rounded" /> <span class="font-medium">Water Quality Metrics</span></label>
+                <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" class="w-4 h-4 text-primary rounded" /> <span class="font-medium">Pollutant Spills</span></label>
+                <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" class="w-4 h-4 text-primary rounded" /> <span class="font-medium">Wildlife Observations</span></label>
+              </div>
+            </div>
+
+            <div>
+              <label class="block font-headline text-xs font-bold text-primary mb-1.5">Monitoring Region</label>
+              <select id="export-region" class="w-full bg-surface-bg text-primary text-xs p-3 rounded-xl border border-surface-low outline-none">
+                <option value="Kisumu Bay">Kisumu Bay</option>
+                <option value="Winam Gulf">Winam Gulf</option>
+                <option value="Whole Lake Victoria">Whole Lake Victoria</option>
+              </select>
+            </div>
+
+            <button id="download-csv-action" class="w-full bg-primary text-white py-3.5 px-4 rounded-xl font-mono text-sm font-bold shadow-md hover:bg-primary-container transition-all flex items-center justify-center gap-2 cursor-pointer">
+              <span class="material-symbols-outlined text-[18px]">download</span> Export CSV (2.4 MB)
+            </button>
+          </div>
+
+          <!-- Data Summary Preview (7 Cols) -->
+          <div class="lg:col-span-7 bg-white rounded-2xl p-6 border border-surface-low shadow-sm space-y-4">
+            <div class="flex justify-between items-center">
+              <div>
+                <span class="font-mono text-[10px] text-outline uppercase block">PREVIEW</span>
+                <h3 class="font-headline text-lg font-bold text-primary mt-0.5">Data Summary</h3>
+              </div>
+              <div class="bg-surface-high text-primary px-3 py-1 rounded-full font-mono text-xs font-bold">142 Records Selected</div>
+            </div>
+
+            <!-- Histogram Chart -->
+            <div class="h-64 pt-6 pb-2 px-4 bg-surface-bg rounded-xl border border-surface-low flex flex-col justify-end">
+              <div class="flex items-end justify-around gap-4 h-48 pb-2 border-b border-surface-low">
+                <div class="flex-1 flex flex-col items-center"><div class="w-full max-w-[64px] bg-surface-high rounded-t-lg h-24"></div></div>
+                <div class="flex-1 flex flex-col items-center"><div class="w-full max-w-[64px] bg-surface-high rounded-t-lg h-36"></div></div>
+                <div class="flex-1 flex flex-col items-center"><div class="w-full max-w-[64px] bg-primary rounded-t-lg h-48 shadow-sm"></div></div>
+                <div class="flex-1 flex flex-col items-center"><div class="w-full max-w-[64px] bg-surface-high rounded-t-lg h-32"></div></div>
+                <div class="flex-1 flex flex-col items-center"><div class="w-full max-w-[64px] bg-surface-high rounded-t-lg h-20"></div></div>
+              </div>
+              <div class="flex justify-around text-[11px] font-mono text-outline pt-2">
+                <span>Wk 1</span><span>Wk 2</span><span class="font-bold text-primary">Wk 3</span><span>Wk 4</span><span>Wk 5</span>
+              </div>
+            </div>
+
+            <!-- Footer Micro Metrics -->
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
+              <div class="bg-surface-bg p-3 rounded-xl border border-surface-low">
+                <span class="text-[10px] font-mono text-outline block">Avg Quality Score</span>
+                <div class="flex items-baseline gap-1 mt-1"><span class="font-headline text-xl font-bold text-secondary">84</span><span class="text-xs text-outline">/100</span></div>
+              </div>
+              <div class="bg-surface-bg p-3 rounded-xl border border-surface-low">
+                <span class="text-[10px] font-mono text-outline block">Critical Alerts</span>
+                <span class="font-headline text-xl font-bold text-error mt-1 block">3</span>
+              </div>
+              <div class="bg-surface-bg p-3 rounded-xl border border-surface-low">
+                <span class="text-[10px] font-mono text-outline block">Coverage Area</span>
+                <div class="flex items-baseline gap-1 mt-1"><span class="font-headline text-xl font-bold text-primary">120</span><span class="text-xs text-outline font-mono">km²</span></div>
+              </div>
+              <div class="bg-surface-bg p-3 rounded-xl border border-surface-low">
+                <span class="text-[10px] font-mono text-outline block">Active Sensors</span>
+                <span class="font-headline text-xl font-bold text-primary mt-1 block">14</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
 
   <script type="module" src="js/dashboard.js"></script>
 </body>
