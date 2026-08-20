@@ -3,7 +3,7 @@
  * File: frontend/js/api.js
  */
 
-const BASE_URL = window.location.origin || 'http://localhost:8080';
+const BASE_URL = window.location.origin || 'http://localhost:3000';
 
 async function apiFetch(endpoint, options = {}) {
   const url = endpoint.startsWith('http') ? endpoint : `${BASE_URL}${endpoint}`;
