@@ -1,8 +1,12 @@
 package handlers
 
 import (
+	"bytes"
 	"database/sql"
+	"encoding/csv"
+	"encoding/json"
 	"fmt"
+	"math"
 	"strconv"
 	"time"
 
@@ -11,7 +15,7 @@ import (
 	"github.com/guardians-of-the-lake/backend/internal/models"
 )
 
-// DashboardHandler serves B2G and institutional water quality monitoring metrics and GeoJSON feeds
+// DashboardHandler serves B2G and institutional water quality monitoring metrics, GeoJSON feeds, health indices, and data exports
 type DashboardHandler struct {
 	DB *sql.DB
 }
@@ -136,16 +140,16 @@ func (h *DashboardHandler) GetPoints(c *fiber.Ctx) error {
 				Coordinates: []float64{lng, lat}, // GeoJSON standard: [longitude, latitude]
 			},
 			Properties: map[string]interface{}{
-				"id":           id,
-				"user_id":      userID,
-				"user_name":    userName,
-				"category":     category,
-				"description":  desc,
-				"photo_path":   photo,
-				"status":       status,
-				"ledger_hash":  hash,
-				"device_meta":  meta,
-				"created_at":   createdAt,
+				"id":          id,
+				"user_id":     userID,
+				"user_name":   userName,
+				"category":    category,
+				"description": desc,
+				"photo_path":  photo,
+				"status":      status,
+				"ledger_hash": hash,
+				"device_meta": meta,
+				"created_at":  createdAt,
 			},
 		}
 
@@ -198,4 +202,222 @@ func (h *DashboardHandler) GetTrends(c *fiber.Ctx) error {
 	}
 
 	return c.JSON(trends)
+}
+
+// GetHealth computes and returns dynamic Lake Health Index (0-100), category deductions, ratings, and 7-day trend snapshots
+func (h *DashboardHandler) GetHealth(c *fiber.Ctx) error {
+	// 1. Calculate live 24h health score
+	var total24h int64
+	breakdown := make(map[string]int64)
+
+	query24h := `
+		SELECT category, COUNT(*)
+		FROM reports
+		WHERE created_at >= DATETIME('now', '-24 hours')
+		GROUP BY category
+	`
+	rows, err := h.DB.Query(query24h)
+	if err == nil {
+		defer rows.Close()
+		for rows.Next() {
+			var cat string
+			var count int64
+			if err := rows.Scan(&cat, &count); err == nil {
+				breakdown[cat] = count
+				total24h += count
+			}
+		}
+	}
+
+	// Dynamic calculation algorithm:
+	// Base: 100
+	// Spill: -10 pts each
+	// Algae: -5 pts each
+	// Turbidity: -2 pts each
+	// Smell: -2 pts each
+	// Other: -1 pt each
+	baseScore := 100.0
+	deductions := float64(breakdown[string(models.CategorySpill)]*10 +
+		breakdown[string(models.CategoryAlgae)]*5 +
+		breakdown[string(models.CategoryTurbidity)]*2 +
+		breakdown[string(models.CategorySmell)]*2 +
+		breakdown[string(models.CategoryOther)]*1)
+
+	currentScore := math.Max(0.0, math.Min(100.0, baseScore-deductions))
+
+	// Determine Rating
+	var rating string
+	switch {
+	case currentScore >= 85:
+		rating = "Pristine"
+	case currentScore >= 70:
+		rating = "Good"
+	case currentScore >= 50:
+		rating = "Moderate"
+	case currentScore >= 30:
+		rating = "Degraded"
+	default:
+		rating = "Critical"
+	}
+
+	// Determine Recommendations
+	recommendations := make([]string, 0)
+	if breakdown[string(models.CategorySpill)] > 0 {
+		recommendations = append(recommendations, "CRITICAL: Deploy hydrocarbon containment booms and notify Maritime Authority immediately.")
+	}
+	if breakdown[string(models.CategoryAlgae)] >= 2 {
+		recommendations = append(recommendations, "WARNING: Elevated microcystin risk; issue boiling advisory and monitor water intake stations.")
+	}
+	if breakdown[string(models.CategoryTurbidity)] >= 3 {
+		recommendations = append(recommendations, "CAUTION: Heavy runoff siltation detected; inspect upstream catchment soil barriers.")
+	}
+	if len(recommendations) == 0 {
+		recommendations = append(recommendations, "Water quality parameters are within normal baseline thresholds across Lake Victoria monitoring zones.")
+	}
+
+	// Store or update snapshot in lake_health table for today
+	breakdownJSON, _ := json.Marshal(breakdown)
+	todayStr := time.Now().UTC().Format("2006-01-02")
+	upsertSnapshot := `
+		INSERT INTO lake_health (snapshot_date, health_score, total_reports, breakdown, created_at)
+		VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
+		ON CONFLICT(snapshot_date) DO UPDATE SET
+			health_score = excluded.health_score,
+			total_reports = excluded.total_reports,
+			breakdown = excluded.breakdown
+	`
+	_, _ = h.DB.Exec(upsertSnapshot, todayStr, currentScore, total24h, string(breakdownJSON))
+
+	// Fetch up to 7 historical snapshots
+	trendSnapshots := make([]models.LakeHealthSnapshot, 0)
+	snapRows, err := h.DB.Query(`
+		SELECT id, snapshot_date, health_score, total_reports, breakdown, created_at
+		FROM lake_health
+		ORDER BY snapshot_date ASC
+		LIMIT 7
+	`)
+	if err == nil {
+		defer snapRows.Close()
+		for snapRows.Next() {
+			var snap models.LakeHealthSnapshot
+			var bStr string
+			if err := snapRows.Scan(&snap.ID, &snap.SnapshotDate, &snap.HealthScore, &snap.TotalReports, &bStr, &snap.CreatedAt); err == nil {
+				_ = json.Unmarshal([]byte(bStr), &snap.Breakdown)
+				if snap.HealthScore >= 85 {
+					snap.Rating = "Pristine"
+				} else if snap.HealthScore >= 70 {
+					snap.Rating = "Good"
+				} else if snap.HealthScore >= 50 {
+					snap.Rating = "Moderate"
+				} else if snap.HealthScore >= 30 {
+					snap.Rating = "Degraded"
+				} else {
+					snap.Rating = "Critical"
+				}
+				trendSnapshots = append(trendSnapshots, snap)
+			}
+		}
+	}
+
+	resp := models.LakeHealthResponse{
+		CurrentScore:    currentScore,
+		Rating:          rating,
+		Category:        "Lake Victoria Basin",
+		TotalReports24h: total24h,
+		Breakdown:       breakdown,
+		TrendSnapshots:  trendSnapshots,
+		Recommendations: recommendations,
+		ComputedAt:      time.Now().UTC(),
+	}
+
+	return c.JSON(resp)
+}
+
+// ExportCSV exports verified water reports in RFC 4180 CSV format for B2G environmental agency compliance
+func (h *DashboardHandler) ExportCSV(c *fiber.Ctx) error {
+	statusFilter := c.Query("status", "verified")
+
+	query := `
+		SELECT r.id, r.user_id, r.category, r.lat, r.lng, COALESCE(r.description, ''),
+		       r.status, COALESCE(l.content_hash, ''), COALESCE(l.chain_ref, ''),
+		       r.created_at, l.verified_at
+		FROM reports r
+		LEFT JOIN ledger_entries l ON r.id = l.report_id
+	`
+	var rows *sql.Rows
+	var err error
+
+	if statusFilter == "all" {
+		query += ` ORDER BY r.created_at DESC`
+		rows, err = h.DB.Query(query)
+	} else {
+		query += ` WHERE r.status = ? ORDER BY r.created_at DESC`
+		rows, err = h.DB.Query(query, statusFilter)
+	}
+
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": fmt.Sprintf("database query failed: %v", err),
+		})
+	}
+	defer rows.Close()
+
+	buf := new(bytes.Buffer)
+	writer := csv.NewWriter(buf)
+
+	// Write CSV Header
+	header := []string{
+		"Report ID",
+		"User ID",
+		"Anomaly Category",
+		"Latitude",
+		"Longitude",
+		"Description",
+		"Status",
+		"SHA-256 Ledger Hash",
+		"Blockchain Anchor Reference",
+		"Created At (UTC)",
+		"Verified At (UTC)",
+	}
+	if err := writer.Write(header); err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "failed to write CSV header"})
+	}
+
+	for rows.Next() {
+		var id, userID int64
+		var category, desc, status, hash, chainRef string
+		var lat, lng float64
+		var createdAt time.Time
+		var verifiedAt sql.NullTime
+
+		if err := rows.Scan(&id, &userID, &category, &lat, &lng, &desc, &status, &hash, &chainRef, &createdAt, &verifiedAt); err != nil {
+			continue
+		}
+
+		verifiedAtStr := ""
+		if verifiedAt.Valid {
+			verifiedAtStr = verifiedAt.Time.UTC().Format(time.RFC3339)
+		}
+
+		record := []string{
+			strconv.FormatInt(id, 10),
+			strconv.FormatInt(userID, 10),
+			category,
+			fmt.Sprintf("%.6f", lat),
+			fmt.Sprintf("%.6f", lng),
+			desc,
+			status,
+			hash,
+			chainRef,
+			createdAt.UTC().Format(time.RFC3339),
+			verifiedAtStr,
+		}
+		_ = writer.Write(record)
+	}
+
+	writer.Flush()
+
+	c.Set("Content-Type", "text/csv; charset=utf-8")
+	c.Set("Content-Disposition", "attachment; filename=\"lake_victoria_water_quality_reports.csv\"")
+	return c.Send(buf.Bytes())
 }
