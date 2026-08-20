@@ -17,8 +17,11 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/recover"
 	"github.com/joho/godotenv"
 
+	"github.com/guardians-of-the-lake/backend/internal/ai"
+	"github.com/guardians-of-the-lake/backend/internal/alert"
 	"github.com/guardians-of-the-lake/backend/internal/db"
 	"github.com/guardians-of-the-lake/backend/internal/handlers"
+	"github.com/guardians-of-the-lake/backend/internal/ledger"
 	"github.com/guardians-of-the-lake/backend/internal/lightning"
 	"github.com/guardians-of-the-lake/backend/internal/rewards"
 	"github.com/guardians-of-the-lake/backend/internal/verify"
@@ -95,18 +98,25 @@ func main() {
 	)
 	rewardService := rewards.NewService(database, lnClient, hub)
 
-	// 8. Initialize Consensus Engine
-	consensusEngine := verify.NewConsensusEngine(database, hub, rewardService)
+	// 8. Initialize Early Warning & AI Prediction Services
+	alertService := alert.NewService(database, hub)
+	aiService := ai.NewService()
 
-	// 9. Initialize HTTP Handlers
+	// 9. Initialize Consensus Engine
+	consensusEngine := verify.NewConsensusEngine(database, hub, rewardService)
+	consensusEngine.AlertEvaluator = alertService
+
+	// 10. Initialize HTTP Handlers
 	reportHandler := handlers.NewReportHandler(database, hub, uploadsDir)
 	verifyHandler := handlers.NewVerifyHandler(database, hub, consensusEngine)
 	dashboardHandler := handlers.NewDashboardHandler(database)
 	ledgerHandler := handlers.NewLedgerHandler(database)
 	rewardHandler := handlers.NewRewardHandler(database, rewardService)
 	userHandler := handlers.NewUserHandler(database)
+	alertHandler := handlers.NewAlertHandler(database, alertService)
+	aiHandler := handlers.NewAIHandler(aiService)
 
-	// 10. Initialize Fiber App
+	// 11. Initialize Fiber App
 	app := fiber.New(fiber.Config{
 		AppName:      "Guardians of the Lake API v1.0",
 		BodyLimit:    20 * 1024 * 1024, // 20 MB for photo uploads
@@ -166,6 +176,14 @@ func main() {
 	api.Get("/ledger/:report_id", ledgerHandler.GetEntry)
 	api.Get("/ledger/:report_id/verify", ledgerHandler.VerifyIntegrity)
 
+	// Early Warning Alerts
+	api.Get("/alerts/active", alertHandler.GetActiveAlerts)
+	api.Get("/alerts", alertHandler.GetAllAlerts)
+	api.Post("/alerts/:id/resolve", alertHandler.ResolveAlert)
+
+	// AI Water Quality Prediction
+	api.Post("/ai/assess", aiHandler.Assess)
+
 	// Rewards
 	api.Get("/rewards/summary", rewardHandler.GetRewardStats)
 
@@ -177,6 +195,21 @@ func main() {
 	// Internal Routes (Service-to-Service)
 	internal := app.Group("/internal")
 	internal.Post("/rewards/:report_id/payout", rewardHandler.ManualPayout)
+	internal.Post("/ledger/anchor", func(c *fiber.Ctx) error {
+		network := c.Query("network", "hedera-testnet")
+		root, txRef, count, err := ledger.AnchorBatchToChain(database, network)
+		if err != nil {
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
+		}
+		return c.JSON(fiber.Map{
+			"status":         "anchored",
+			"network":        network,
+			"merkle_root":    root,
+			"tx_ref":         txRef,
+			"anchored_count": count,
+			"timestamp":      time.Now().UTC(),
+		})
+	})
 
 	// WebSocket Dashboard Endpoint
 	app.Use("/ws", func(c *fiber.Ctx) error {

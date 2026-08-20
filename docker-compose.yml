@@ -1,0 +1,27 @@
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: guardians_backend
+    ports:
+      - "8080:8080"
+    environment:
+      - PORT=8080
+      - DB_PATH=/app/data/guardians.db
+      - MIGRATIONS_DIR=/app/migrations
+      - UPLOADS_DIR=/app/uploads
+      - STATIC_DIR=/app/frontend
+      - AUTO_MIGRATE=true
+      - LNBITS_URL=${LNBITS_URL:-}
+      - LNBITS_ADMIN_KEY=${LNBITS_ADMIN_KEY:-}
+      - LNBITS_INVOICE_KEY=${LNBITS_INVOICE_KEY:-}
+    volumes:
+      - backend_data:/app/data
+      - backend_uploads:/app/uploads
+      - ./frontend:/app/frontend:ro
+    restart: unless-stopped
+
+volumes:
+  backend_data:
+  backend_uploads:
