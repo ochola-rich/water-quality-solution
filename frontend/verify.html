@@ -3,20 +3,23 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Verify Reports - Guardians of the Lake</title>
+  <title>Pending Verifications - Guardians of the Lake</title>
 
+  <!-- Typography & Icons -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@600;700&family=JetBrains+Mono:wght@500;600&family=Work+Sans:wght@400;500&display=swap" rel="stylesheet" />
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
+
+  <!-- Tailwind CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-[#f8f9ff] text-[#0d1c2e] font-sans flex min-h-screen">
+<body class="bg-[#f8f9ff] text-[#0d1c2e] font-sans antialiased flex min-h-screen">
 
   <!-- Sidebar -->
-  <aside class="w-64 bg-white border-r border-[#eff4ff] p-6 flex flex-col fixed h-full z-20">
+  <aside class="w-64 bg-white border-r border-[#eff4ff] p-6 flex flex-col fixed h-full z-20 hidden md:flex">
     <div class="flex items-center gap-3 mb-8">
-      <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuCFLzIXN4YEg1liRFpmCKfUOleFO8FERzweularOMX9Z-rwpaZlsDvSET674m3bPlapj4Odtzgoir_bZDsLHnJDAZNYhf92EqarjkHX0zdKccBf_khRxTn3ZFutCl7qcRQb2e7GayQE0YwFycqmgKRIaHwOKUBeIC-2-arYKtavuzi_d2Qo7ZmeGnODC2X0To-Tas2QMz7w-pypp0n1r2dlbMNFqBAZij96Px4n3OAZEi-9mwX1Vti3Fg" alt="Logo" class="w-10 h-10 rounded" />
+      <img src="https://images.unsplash.com/photo-1544551763-46a013bb70d5?auto=format&fit=crop&w=100&q=80" alt="Logo" class="w-10 h-10 rounded-lg object-cover" />
       <div>
         <h1 class="font-bold text-sm text-[#002546]">Guardians of the Lake</h1>
         <p class="font-mono text-xs text-[#737780]">Environmental Intelligence</p>
@@ -24,36 +27,74 @@
     </div>
 
     <nav class="flex flex-col gap-2 flex-1 font-mono text-sm">
-      <a href="dashboard.html" class="flex items-center gap-3 px-3 py-2.5 rounded text-[#42474f] hover:bg-[#eff4ff]">
+      <a href="dashboard.html" class="flex items-center gap-3 px-3 py-2.5 rounded text-[#42474f] hover:bg-[#eff4ff] transition-colors">
         <span class="material-symbols-outlined">dashboard</span> Overview
       </a>
       <a href="verify.html" class="flex items-center gap-3 px-3 py-2.5 rounded bg-[#dce9ff] text-[#002546] font-bold border-r-4 border-[#002546]">
         <span class="material-symbols-outlined">fact_check</span> Verify Reports
       </a>
+      <a href="dashboard.html#map" class="flex items-center gap-3 px-3 py-2.5 rounded text-[#42474f] hover:bg-[#eff4ff] transition-colors">
+        <span class="material-symbols-outlined">map</span> Environmental Map
+      </a>
+      <a href="dashboard.html#alerts" class="flex items-center gap-3 px-3 py-2.5 rounded text-[#42474f] hover:bg-[#eff4ff] transition-colors">
+        <span class="material-symbols-outlined">notifications_active</span> Alerts & Export
+      </a>
     </nav>
   </aside>
 
   <!-- Main View -->
-  <main class="flex-1 ml-64 p-8 max-w-7xl mx-auto w-full space-y-6">
+  <main class="flex-1 md:ml-64 p-6 md:p-8 max-w-7xl mx-auto w-full space-y-6">
+    <!-- Header with Search & LIVE Badge -->
+    <div class="flex justify-between items-center">
+      <div class="relative w-72">
+        <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">search</span>
+        <input id="search-input" type="text" placeholder="Search reports..." class="w-full bg-white pl-9 pr-4 py-2 rounded-xl text-xs border border-[#eff4ff] focus:outline-none focus:border-[#002546]" />
+      </div>
+      <div class="flex items-center gap-2 bg-[#ffdad6] text-[#93000a] px-3 py-1 rounded-full font-mono text-xs font-bold">
+        <span class="w-2 h-2 rounded-full bg-[#ba1a1a] animate-pulse"></span>
+        <span id="pending-counter">3 Pending</span>
+      </div>
+    </div>
+
     <div>
-      <h2 class="text-3xl font-bold text-[#002546]">Verify Reports</h2>
-      <p class="text-sm text-[#42474f]">Review community and station field submissions for water quality assurance.</p>
+      <h2 class="text-3xl font-bold text-[#002546]">Pending Verifications</h2>
+      <p class="text-sm text-[#42474f] mt-1">Review and classify incoming environmental reports from field sensors and community uploads.</p>
     </div>
 
-    <!-- Filter Buttons -->
-    <div class="flex gap-2">
-      <button data-filter="all" class="bg-[#002546] text-white px-4 py-1.5 rounded-full font-mono text-xs font-bold cursor-pointer">All</button>
-      <button data-filter="unverified" class="bg-[#eff4ff] text-[#002546] hover:bg-[#dce9ff] px-4 py-1.5 rounded-full font-mono text-xs font-bold cursor-pointer">Unverified</button>
-      <button data-filter="verified" class="bg-[#eff4ff] text-[#002546] hover:bg-[#dce9ff] px-4 py-1.5 rounded-full font-mono text-xs font-bold cursor-pointer">Verified</button>
-    </div>
+    <!-- Alert Feedback Message -->
+    <div id="feedback-banner" class="hidden p-4 rounded-xl font-medium text-xs"></div>
 
-    <!-- Split Review Grid -->
-    <div class="grid grid-cols-12 gap-6">
-      <div id="reports-feed-list" class="col-span-7 space-y-4"></div>
-      <div id="inspection-workbench" class="col-span-5 sticky top-8"></div>
+    <!-- 2 Column Grid (Report Cards on Left + Contextual Map on Right) -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+      <!-- Report Feed List -->
+      <div id="verify-feed" class="lg:col-span-7 space-y-4"></div>
+
+      <!-- Contextual Lake Victoria Map Side Panel -->
+      <div class="lg:col-span-5 bg-white rounded-2xl p-5 border border-[#eff4ff] shadow-sm space-y-3 sticky top-6">
+        <div class="flex justify-between items-center">
+          <h3 class="font-bold text-base text-[#002546]">Contextual Map</h3>
+          <span class="text-xs font-mono text-[#737780]">Lake Victoria Basin</span>
+        </div>
+
+        <div class="relative h-64 rounded-xl overflow-hidden bg-[#c2e4ea] border border-[#eff4ff]">
+          <img src="https://images.unsplash.com/photo-1544551763-46a013bb70d5?auto=format&fit=crop&w=600&q=80" alt="Lake Victoria Context" class="w-full h-full object-cover" />
+          <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center">
+            <div class="w-6 h-6 rounded-full bg-[#ba1a1a] animate-ping absolute"></div>
+            <div class="w-6 h-6 rounded-full bg-[#ba1a1a] border-2 border-white shadow-lg z-10 flex items-center justify-center">
+              <span class="w-2 h-2 rounded-full bg-white"></span>
+            </div>
+            <span class="bg-white text-[#002546] font-mono text-[10px] font-bold px-2 py-0.5 rounded shadow mt-1">Kisumu Sector</span>
+          </div>
+
+          <div class="absolute bottom-2 left-2 right-2 bg-white/90 backdrop-blur-xs p-2 rounded-lg text-xs font-mono flex justify-between">
+            <span class="text-gray-500">Nearby Assets</span>
+            <span class="text-[#006c4e] font-bold">● Drone Patrol 2 (1.2km)</span>
+          </div>
+        </div>
+      </div>
     </div>
   </main>
 
-  <script src="js/verify.js"></script>
+  <script type="module" src="js/verify.js"></script>
 </body>
 </html>

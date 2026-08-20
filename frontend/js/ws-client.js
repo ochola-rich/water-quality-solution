@@ -1,73 +1,66 @@
 /**
- * WebSocket Live Stream Client & Alert Dispatcher
+ * Native WebSocket Stream Client
+ * File: frontend/js/ws-client.js
  */
+
 export class LiveTelemetryClient {
-  constructor(url = 'wss://lake-telemetry.kisumu.org/stream', onMessageCallback) {
+  constructor(url = '/ws/dashboard') {
     this.url = url;
-    this.onMessage = onMessageCallback;
-    this.socket = null;
-    this.reconnectTimer = null;
-    this.subscribers = new Set();
+    this.ws = null;
+    this.handlers = new Map();
+    this.isConnected = false;
   }
 
   connect() {
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const host = window.location.host || 'localhost:3000';
+    const wsUrl = `${protocol}//${host}${this.url}`;
+
     try {
-      this.socket = new WebSocket(this.url);
+      this.ws = new WebSocket(wsUrl);
 
-      this.socket.onopen = () => {
-        console.log('[WS] Connected to Lake Victoria telemetry stream');
-        this.emitStatus('LIVE');
+      this.ws.onopen = () => {
+        this.isConnected = true;
+        this.emit('connection', { status: 'connected' });
+        console.log('[WS] Connected to Go WebSocket stream');
       };
 
-      this.socket.onmessage = (event) => {
-        const payload = JSON.parse(event.data);
-        this.notify(payload);
+      this.ws.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          const type = data.type || data.event || 'message';
+          this.emit(type, data.payload || data);
+        } catch (e) {
+          console.error('[WS] Error parsing message:', e);
+        }
       };
 
-      this.socket.onclose = () => {
-        console.warn('[WS] Stream disconnected. Reconnecting in 3s...');
-        this.emitStatus('RECONNECTING');
-        this.reconnectTimer = setTimeout(() => this.connect(), 3000);
+      this.ws.onclose = () => {
+        this.isConnected = false;
+        this.emit('connection', { status: 'disconnected' });
+        setTimeout(() => this.connect(), 5000);
       };
 
-      this.socket.onerror = (err) => {
-        console.error('[WS Error]', err);
-        this.simulateFallbackTelemetry();
+      this.ws.onerror = () => {
+        this.isConnected = false;
+        this.emit('connection', { status: 'error' });
       };
     } catch (e) {
-      this.simulateFallbackTelemetry();
+      console.warn('[WS] Native WebSocket not reachable, using fallback.');
     }
   }
 
-  subscribe(callback) {
-    this.subscribers.add(callback);
-    return () => this.subscribers.delete(callback);
+  on(event, callback) {
+    if (!this.handlers.has(event)) {
+      this.handlers.set(event, []);
+    }
+    this.handlers.get(event).push(callback);
   }
 
-  notify(data) {
-    this.subscribers.forEach((cb) => cb(data));
-  }
-
-  emitStatus(status) {
-    const el = document.getElementById('live-status-indicator');
-    if (el) el.querySelector('span').textContent = status;
-  }
-
-  // Simulated live telemetry loop for offline/preview environments
-  simulateFallbackTelemetry() {
-    setInterval(() => {
-      const mockEvent = {
-        type: 'TELEMETRY_PULSE',
-        timestamp: new Date().toLocaleTimeString(),
-        hotspotId: 'hs-1',
-        metrics: {
-          dissolvedOxygen: (6.2 + (Math.random() * 0.4 - 0.2)).toFixed(2),
-          turbidity: (24.5 + (Math.random() * 1.5 - 0.75)).toFixed(1),
-          temp: (26.0 + (Math.random() * 0.2 - 0.1)).toFixed(1)
-        }
-      };
-      this.notify(mockEvent);
-    }, 4000);
+  emit(event, data) {
+    if (this.handlers.has(event)) {
+      this.handlers.get(event).forEach(cb => cb(data));
+    }
   }
 }
 
