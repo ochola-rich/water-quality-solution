@@ -138,3 +138,47 @@ type GeoJSONGeometry struct {
 	Type        string    `json:"type"`
 	Coordinates []float64 `json:"coordinates"` // [lng, lat]
 }
+
+// AlertSeverity represents early warning urgency
+type AlertSeverity string
+
+const (
+	SeverityModerate AlertSeverity = "moderate"
+	SeverityHigh     AlertSeverity = "high"
+	SeverityCritical AlertSeverity = "critical"
+)
+
+// AlertStatus represents lifecycle of an early warning alert
+type AlertStatus string
+
+const (
+	AlertActive   AlertStatus = "active"
+	AlertResolved AlertStatus = "resolved"
+)
+
+// Alert represents an early warning cluster detection alert
+type Alert struct {
+	ID          int64          `json:"id"`
+	Title       string         `json:"title"`
+	Category    ReportCategory `json:"category"`
+	Severity    AlertSeverity  `json:"severity"`
+	ClusterLat  float64        `json:"cluster_lat"`
+	ClusterLng  float64        `json:"cluster_lng"`
+	RadiusM     float64        `json:"radius_m"`
+	ReportCount int64          `json:"report_count"`
+	Status      AlertStatus    `json:"status"`
+	CreatedAt   time.Time      `json:"created_at"`
+	ResolvedAt  *time.Time     `json:"resolved_at,omitempty"`
+}
+
+// AIAssessmentResult represents the automated water quality prediction outcome
+type AIAssessmentResult struct {
+	CategoryEstimate  ReportCategory `json:"category_estimate"`
+	WaterQualityIndex int            `json:"water_quality_index"` // 0-100 (0=Hazardous, 100=Pristine)
+	ConfidenceScore   float64        `json:"confidence_score"`    // 0.0 - 1.0
+	Severity          string         `json:"severity"`            // normal | warning | critical
+	AdvisoryNotice    string         `json:"advisory_notice"`
+	DetectedFeatures  []string       `json:"detected_features"`
+	EvaluatedAt       time.Time      `json:"evaluated_at"`
+}
+
