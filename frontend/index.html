@@ -1,91 +1,81 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Guardians of the Lake - Report</title>
-  <link rel="stylesheet" href="/frontend/css/style.css" />
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
-</head>
-<body>
+  <title>Guardians of the Lake - Environmental Intelligence</title>
   
+  <!-- Automatic redirect to dashboard after 1 second (or fallback link) -->
+  <meta http-equiv="refresh" content="1; url=dashboard.html" />
 
-  <nav class="navbar" role="navigation" aria-label="Main navigation">
-    <div class="container">
-      <a href="/" class="navbar-brand">
-        <span class="brand-icon">🌊</span>
-        Tembo
+  <!-- Typography -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@600;700&family=JetBrains+Mono:wght@500;600&family=Work+Sans:wght@400;500&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
+
+  <!-- Tailwind CDN & Global Styles -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body class="bg-[#f8f9ff] text-[#0d1c2e] font-body flex items-center justify-center min-h-screen p-6">
+
+  <div class="max-w-lg w-full bg-white rounded-3xl p-8 border border-[#eff4ff] shadow-xl text-center space-y-6">
+    <!-- Brand Logo -->
+    <div class="inline-flex p-3 rounded-2xl bg-[#eff4ff] border border-[#dce9ff] mb-2">
+      <img
+        src="https://lh3.googleusercontent.com/aida-public/AB6AXuCFLzIXN4YEg1liRFpmCKfUOleFO8FERzweularOMX9Z-rwpaZlsDvSET674m3bPlapj4Odtzgoir_bZDsLHnJDAZNYhf92EqarjkHX0zdKccBf_khRxTn3ZFutCl7qcRQb2e7GayQE0YwFycqmgKRIaHwOKUBeIC-2-arYKtavuzi_d2Qo7ZmeGnODC2X0To-Tas2QMz7w-pypp0n1r2dlbMNFqBAZij96Px4n3OAZEi-9mwX1Vti3Fg"
+        alt="Logo"
+        class="w-16 h-16 rounded-xl object-cover"
+      />
+    </div>
+
+    <!-- Title & Description -->
+    <div>
+      <div class="inline-flex items-center gap-1.5 bg-[#ffdad6] text-[#93000a] px-3 py-0.5 rounded-full font-mono text-xs font-bold mb-3">
+        <span class="w-2 h-2 rounded-full bg-[#ba1a1a] animate-ping"></span>
+        <span>KISUMU SECTOR COMMAND</span>
+      </div>
+      <h1 class="font-headline text-3xl font-bold text-[#002546]">Guardians of the Lake</h1>
+      <p class="text-sm text-[#42474f] mt-2 leading-relaxed">
+        Real-time limnological surveillance, community incident verification, and satellite telemetry for Lake Victoria Basin.
+      </p>
+    </div>
+
+    <!-- Quick Navigation Launchpad -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+      <a
+        href="dashboard.html"
+        class="flex flex-col items-center p-4 rounded-2xl bg-[#eff4ff] hover:bg-[#dce9ff] border border-[#dce9ff] transition-all group"
+      >
+        <span class="material-symbols-outlined text-3xl text-[#002546] group-hover:scale-110 transition-transform">dashboard</span>
+        <span class="font-headline font-bold text-sm text-[#002546] mt-2">Lake Overview</span>
+        <span class="font-mono text-[11px] text-[#737780]">Live Map & Gauge</span>
       </a>
-      
-      <button class="nav-toggle" aria-label="Toggle navigation" id="navToggle">
-        <i class="fas fa-bars"></i>
-      </button>
-      
-      <div class="navbar-links" id="navLinks">
-        <a href="/" class="nav-link active">
-          <i class="fas fa-camera"></i> Report
-        </a>
-        <a href="/verify.html" class="nav-link">
-          <i class="fas fa-check-circle"></i> Verify
-        </a>
-        <a href="/dashboard.html" class="nav-link">
-          <i class="fas fa-chart-pie"></i> Dashboard
-        </a>
-      </div>
+
+      <a
+        href="verify.html"
+        class="flex flex-col items-center p-4 rounded-2xl bg-[#eff4ff] hover:bg-[#dce9ff] border border-[#dce9ff] transition-all group"
+      >
+        <span class="material-symbols-outlined text-3xl text-[#006c4e] group-hover:scale-110 transition-transform">fact_check</span>
+        <span class="font-headline font-bold text-sm text-[#002546] mt-2">Verify Reports</span>
+        <span class="font-mono text-[11px] text-[#737780]">Review Submissions</span>
+      </a>
     </div>
-  </nav>
-  
-  <!-- Offline Banner (hidden by default, shown by offline-queue.js) -->
-  <div class="offline-banner" id="offlineBanner">
-    <i class="fas fa-wifi"></i>
-    <span id="offlineMessage">You are offline — reports will be queued</span>
-    <span class="sync-progress" id="syncProgress"></span>
+
+    <!-- Redirect Note -->
+    <div class="pt-4 border-t border-[#eff4ff] flex items-center justify-center gap-2 text-xs font-mono text-[#737780]">
+      <span class="material-symbols-outlined text-base animate-spin">sync</span>
+      <span>Redirecting to Lake Overview in 1s...</span>
+    </div>
   </div>
-  
-  <!-- Main Content -->
-  <main>
-    <section class="section">
-      <div class="container">
-        <h1>🌊 Report Water Pollution</h1>
-        <p class="text-muted">
-          Help protect Lake Victoria. Take a photo, pin the location, and tell us what you see.
-        </p>
-        
-        <div id="reportFormContainer">
-        </div>
-        
-        <div id="reportStatus" style="display: none;">
-        </div>
-      </div>
-    </section>
-  </main>
-  
-  <!-- Footer -->
-  <footer class="footer">
-    <div class="container">
-      <p>
-        🌊 Guardians of the Lake — Zone01 Kisumu GreenTech Hackathon 2026
-      </p>
-      <p style="font-size: 0.8rem; opacity: 0.7;">
-        Built with ❤️ for Lake Victoria
-      </p>
-    </div>
-  </footer>
-  
-  <!-- JavaScript -->
-  <!-- Shared modules -->
-  <script type="module" src="/js/api.js"></script>
-  <script type="module" src="/js/ws-client.js"></script>
-  <script type="module" src="/js/offline-queue.js"></script>
-  <script type="module" src="/js/ai-classifier.js"></script>
-  
-  <!-- Page-specific -->
-  <script type="module" src="/js/report.js"></script>
-  
+
   <script>
-    // Mobile nav toggle
-    document.getElementById('navToggle').addEventListener('click', function() {
-      document.getElementById('navLinks').classList.toggle('open');
+    // Immediate fallback redirect in case meta-refresh is disabled
+    window.addEventListener('DOMContentLoaded', () => {
+      setTimeout(() => {
+        window.location.href = 'dashboard.html';
+      }, 1000);
     });
   </script>
 </body>
