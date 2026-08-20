@@ -19,9 +19,12 @@ CREATE TABLE IF NOT EXISTS reports (
   category TEXT NOT NULL,                -- turbidity | algae | spill | smell | other
   description TEXT,
   device_meta TEXT,                      -- JSON string with metadata and fraud flags
+  ai_prediction TEXT,                    -- JSON string with AI model classification
+  client_uuid TEXT UNIQUE,               -- client-side UUID for offline sync idempotency
   status TEXT NOT NULL DEFAULT 'pending', -- pending | verified | rejected | flagged
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+CREATE INDEX IF NOT EXISTS idx_reports_client_uuid ON reports(client_uuid);
 
 CREATE TABLE IF NOT EXISTS verifications (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
