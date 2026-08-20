@@ -18,6 +18,10 @@ import (
 	"github.com/joho/godotenv"
 
 	"github.com/guardians-of-the-lake/backend/internal/db"
+	"github.com/guardians-of-the-lake/backend/internal/handlers"
+	"github.com/guardians-of-the-lake/backend/internal/lightning"
+	"github.com/guardians-of-the-lake/backend/internal/rewards"
+	"github.com/guardians-of-the-lake/backend/internal/verify"
 	"github.com/guardians-of-the-lake/backend/internal/ws"
 )
 
@@ -63,13 +67,12 @@ func main() {
 	}
 	defer database.Close()
 
-	// 4. Run migrations if requested or always ensure schema exists
+	// 4. Run migrations if requested or ensure tables exist
 	if *migrateFlag || os.Getenv("AUTO_MIGRATE") == "true" {
 		if err := db.RunMigrations(database, migrationsDir); err != nil {
 			log.Fatalf("Failed to run migrations: %v", err)
 		}
 	} else {
-		// Run migrations automatically if schema tables don't exist
 		_ = db.RunMigrations(database, migrationsDir)
 	}
 
@@ -84,7 +87,26 @@ func main() {
 	hub := ws.NewHub()
 	go hub.Run()
 
-	// 7. Initialize Fiber App
+	// 7. Initialize Lightning & Rewards Services
+	lnClient := lightning.NewClient(
+		os.Getenv("LNBITS_URL"),
+		os.Getenv("LNBITS_ADMIN_KEY"),
+		os.Getenv("LNBITS_INVOICE_KEY"),
+	)
+	rewardService := rewards.NewService(database, lnClient, hub)
+
+	// 8. Initialize Consensus Engine
+	consensusEngine := verify.NewConsensusEngine(database, hub, rewardService)
+
+	// 9. Initialize HTTP Handlers
+	reportHandler := handlers.NewReportHandler(database, hub, uploadsDir)
+	verifyHandler := handlers.NewVerifyHandler(database, hub, consensusEngine)
+	dashboardHandler := handlers.NewDashboardHandler(database)
+	ledgerHandler := handlers.NewLedgerHandler(database)
+	rewardHandler := handlers.NewRewardHandler(database, rewardService)
+	userHandler := handlers.NewUserHandler(database)
+
+	// 10. Initialize Fiber App
 	app := fiber.New(fiber.Config{
 		AppName:      "Guardians of the Lake API v1.0",
 		BodyLimit:    20 * 1024 * 1024, // 20 MB for photo uploads
@@ -103,7 +125,7 @@ func main() {
 		AllowMethods: "GET, POST, PUT, DELETE, OPTIONS",
 	}))
 
-	// Serve Static Files & Uploads
+	// Serve Static Frontend & Photo Uploads
 	staticDir := os.Getenv("STATIC_DIR")
 	if staticDir == "" {
 		staticDir = "../frontend"
@@ -123,6 +145,38 @@ func main() {
 			"ws_peers":  hub.ClientCount(),
 		})
 	})
+
+	// API Routes Group
+	api := app.Group("/api")
+
+	// Reports
+	api.Post("/reports", reportHandler.SubmitReport)
+	api.Get("/reports", reportHandler.ListReports)
+	api.Get("/reports/:id", reportHandler.GetReport)
+	api.Post("/reports/:id/verify", verifyHandler.SubmitVerificationVote)
+	api.Get("/reports/:id/verifications", verifyHandler.ListVerifications)
+
+	// Dashboard
+	api.Get("/dashboard/summary", dashboardHandler.GetSummary)
+	api.Get("/dashboard/points", dashboardHandler.GetPoints)
+	api.Get("/dashboard/trends", dashboardHandler.GetTrends)
+
+	// Hash Ledger
+	api.Get("/ledger", ledgerHandler.ListEntries)
+	api.Get("/ledger/:report_id", ledgerHandler.GetEntry)
+	api.Get("/ledger/:report_id/verify", ledgerHandler.VerifyIntegrity)
+
+	// Rewards
+	api.Get("/rewards/summary", rewardHandler.GetRewardStats)
+
+	// Users & Leaderboard
+	api.Get("/users/leaderboard", userHandler.GetLeaderboard)
+	api.Get("/users/:id", userHandler.GetUserProfile)
+	api.Get("/users/:id/rewards", rewardHandler.GetUserRewards)
+
+	// Internal Routes (Service-to-Service)
+	internal := app.Group("/internal")
+	internal.Post("/rewards/:report_id/payout", rewardHandler.ManualPayout)
 
 	// WebSocket Dashboard Endpoint
 	app.Use("/ws", func(c *fiber.Ctx) error {
@@ -145,7 +199,7 @@ func main() {
 		}
 	}))
 
-	// Start server in background
+	// Start server
 	go func() {
 		addr := fmt.Sprintf(":%s", port)
 		log.Printf("🌊 Guardians of the Lake server running on http://localhost%s", addr)
