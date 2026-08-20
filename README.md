@@ -1,10 +1,10 @@
-# 🌊 Guardians of the Lake
+# Guardians of the Lake
 
 ### Lake Victoria Water Quality Monitoring & Intelligence Platform
 
 ---
 
-## 📌 Overview
+## Overview
 
 **Guardians of the Lake** is a citizen-powered environmental intelligence platform that enables communities, environmental agencies, and policymakers to monitor, verify, and respond to water quality threats in Lake Victoria.
 
@@ -12,13 +12,13 @@ Citizens submit pollution reports with photos and GPS location. Peer verifiers v
 
 ---
 
-## 🏆 Hackathon Track
+## Hackathon Track
 
 **Zone01 Kisumu GreenTech Hackathon 2026 - Track 1: Lake Victoria Water Quality Monitoring & Intelligence Platform**
 
 ---
 
-## ✨ Key Features
+## Key Features
 
 - **Citizen Reporting** — Submit pollution reports with photo, location, and category (turbidity, algae, spill, smell, other)
 - **AI-Powered Classification** — MobileNet analyzes uploaded photos and suggests contamination type with confidence score
@@ -33,7 +33,7 @@ Citizens submit pollution reports with photos and GPS location. Peer verifiers v
 
 ---
 
-## 🛠️ Tech Stack
+## Tech Stack
 
 | Layer | Technology |
 |:---|:---|
@@ -46,7 +46,7 @@ Citizens submit pollution reports with photos and GPS location. Peer verifiers v
 
 ---
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 guardians-of-the-lake/
@@ -84,7 +84,7 @@ guardians-of-the-lake/
 
 ---
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Prerequisites
 
@@ -163,7 +163,7 @@ Live map updates → Stats refresh → Health score computes → Alerts trigger 
 
 ---
 
-## 🤝 Team
+## Team
 
 | Role | Name |
 |:---|:---|
@@ -175,13 +175,13 @@ Live map updates → Stats refresh → Health score computes → Alerts trigger 
 
 ---
 
-## 📄 License
+## License
 
 MIT
 
 ---
 
-## 🙏 Acknowledgements
+## Acknowledgements
 
 - Zone01 Kisumu & LakeHub for organizing the hackathon
 - LNbits for Lightning Network infrastructure
@@ -197,5 +197,5 @@ MIT
 
 ---
 
-*Built with ❤️ for Lake Victoria during the Zone01 Kisumu GreenTech Hackathon 2026*
+*Built for Lake Victoria during the Zone01 Kisumu GreenTech Hackathon 2026*
 
