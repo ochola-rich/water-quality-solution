@@ -4,9 +4,10 @@
 *.dll
 *.so
 *.dylib
-bin/
-dist/
-server
+/bin/
+/dist/
+/server
+backend/server.exe
 
 # Database files
 *.db
