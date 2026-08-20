@@ -161,6 +161,7 @@ func main() {
 
 	// Reports
 	api.Post("/reports", reportHandler.SubmitReport)
+	api.Post("/reports/sync", reportHandler.SyncOfflineReports)
 	api.Get("/reports", reportHandler.ListReports)
 	api.Get("/reports/:id", reportHandler.GetReport)
 	api.Post("/reports/:id/verify", verifyHandler.SubmitVerificationVote)
@@ -170,6 +171,8 @@ func main() {
 	api.Get("/dashboard/summary", dashboardHandler.GetSummary)
 	api.Get("/dashboard/points", dashboardHandler.GetPoints)
 	api.Get("/dashboard/trends", dashboardHandler.GetTrends)
+	api.Get("/dashboard/health", dashboardHandler.GetHealth)
+	api.Get("/dashboard/export", dashboardHandler.ExportCSV)
 
 	// Hash Ledger
 	api.Get("/ledger", ledgerHandler.ListEntries)
@@ -179,6 +182,7 @@ func main() {
 	// Early Warning Alerts
 	api.Get("/alerts/active", alertHandler.GetActiveAlerts)
 	api.Get("/alerts", alertHandler.GetAllAlerts)
+	api.Post("/alerts/subscribe", alertHandler.Subscribe)
 	api.Post("/alerts/:id/resolve", alertHandler.ResolveAlert)
 
 	// AI Water Quality Prediction
@@ -195,7 +199,8 @@ func main() {
 	// Internal Routes (Service-to-Service)
 	internal := app.Group("/internal")
 	internal.Post("/rewards/:report_id/payout", rewardHandler.ManualPayout)
-	internal.Post("/ledger/anchor", func(c *fiber.Ctx) error {
+
+	anchorHandler := func(c *fiber.Ctx) error {
 		network := c.Query("network", "hedera-testnet")
 		root, txRef, count, err := ledger.AnchorBatchToChain(database, network)
 		if err != nil {
@@ -209,7 +214,9 @@ func main() {
 			"anchored_count": count,
 			"timestamp":      time.Now().UTC(),
 		})
-	})
+	}
+	internal.Post("/ledger/anchor", anchorHandler)
+	internal.Post("/blockchain/anchor", anchorHandler)
 
 	// WebSocket Dashboard Endpoint
 	app.Use("/ws", func(c *fiber.Ctx) error {
