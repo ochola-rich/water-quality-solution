@@ -41,11 +41,17 @@ type RewardProcessor interface {
 	ProcessVerifiedReport(reportID int64, authorID int64) (*models.Reward, error)
 }
 
+// AlertEvaluator defines an interface for early warning cluster detection
+type AlertEvaluator interface {
+	EvaluateCluster(report models.Report) (*models.Alert, error)
+}
+
 // ConsensusEngine coordinates peer verification voting, weight aggregation, and ledger anchoring
 type ConsensusEngine struct {
 	DB              *sql.DB
 	Hub             *ws.Hub
 	RewardService   RewardProcessor
+	AlertEvaluator  AlertEvaluator
 	Threshold       float64
 	MaxRadiusMeters float64
 }
@@ -234,6 +240,13 @@ func (ce *ConsensusEngine) SubmitVote(reportID int64, verifierID int64, vote mod
 			go func() {
 				_, _ = ce.RewardService.ProcessVerifiedReport(report.ID, report.UserID)
 			}()
+		}
+
+		// Early Warning Cluster Evaluation
+		if ce.AlertEvaluator != nil {
+			go func(r models.Report) {
+				_, _ = ce.AlertEvaluator.EvaluateCluster(r)
+			}(report)
 		}
 
 		// Broadcast WebSocket Event: report:verified
