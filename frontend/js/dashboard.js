@@ -139,8 +139,9 @@ window.switchTab = (tabName) => {
 async function initReports() {
   try {
     const fetched = await api.getReports('pending');
-    reports = fetched && fetched.length ? fetched : SEED_REPORTS;
+    reports = fetched || [];
   } catch (err) {
+    console.warn('[Dashboard] Falling back to seed data — API request failed:', err.message);
     reports = SEED_REPORTS;
   }
   renderVerifyCards();
@@ -230,7 +231,9 @@ window.voteReport = async (id, uiStatus) => {
     return;
   }
 
-  reports = reports.map(r => r.id === id ? { ...r, status: uiStatus } : r);
+  // Re-fetch from backend instead of mutating the local array —
+  // avoids the id type-mismatch bug and stays correct even with duplicate seed rows.
+  await initReports();
 
   const fb = document.getElementById('verify-feedback');
   if (fb) {
@@ -239,8 +242,6 @@ window.voteReport = async (id, uiStatus) => {
     fb.classList.remove('hidden');
     setTimeout(() => fb.classList.add('hidden'), 4000);
   }
-
-  renderVerifyCards();
 };
 
 // 3. Environmental Map Inspector

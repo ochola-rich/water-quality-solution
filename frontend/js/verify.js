@@ -84,8 +84,9 @@ let reports = [];
 async function init() {
   try {
     const data = await api.getReports('pending');
-    reports = data && data.length ? data : SEED_REPORTS;
+    reports = data || [];
   } catch (err) {
+    console.warn('[Verify] Falling back to seed data — API request failed:', err.message);
     reports = SEED_REPORTS;
   }
   renderFeed();
@@ -157,10 +158,8 @@ window.confirmVote = async (id) => {
     showFeedback(`Vote failed: ${e.message}`, 'error');
     return;
   }
-
-  reports = reports.map(r => r.id === id ? { ...r, status: 'verified' } : r);
+  await init(); // re-fetch real state instead of local mutation
   showFeedback(`Report ${id} successfully confirmed and published to the live lake map!`, 'success');
-  renderFeed();
 };
 
 window.rejectVote = async (id) => {
@@ -171,10 +170,8 @@ window.rejectVote = async (id) => {
     showFeedback(`Vote failed: ${e.message}`, 'error');
     return;
   }
-
-  reports = reports.map(r => r.id === id ? { ...r, status: 'rejected' } : r);
+  await init();
   showFeedback(`Report ${id} marked as false positive.`, 'error');
-  renderFeed();
 };
 
 function showFeedback(msg, type) {
