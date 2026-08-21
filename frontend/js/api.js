@@ -6,7 +6,7 @@
  * (handlers/verify.go, handlers/dashboard.go) — not guessed.
  */
 
-const BASE_URL = window.location.origin || 'http://localhost:3000';
+const BASE_URL = window.location.origin || 'http://localhost:8080';
 
 async function apiFetch(endpoint, options = {}) {
   const url = endpoint.startsWith('http') ? endpoint : `${BASE_URL}${endpoint}`;
