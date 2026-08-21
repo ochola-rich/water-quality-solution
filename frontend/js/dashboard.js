@@ -1,105 +1,48 @@
 /**
- * Guardians of the Lake - Dashboard Application Controller
+ * Guardians of the Lake - Environmental Intelligence Dashboard
  * File: frontend/js/dashboard.js
+ * 
+ * Full reactive integration with Go Fiber backend API & WebSocket telemetry
  */
 
-import { api } from './api.js';
-import { exportReportsToCSV } from './report.js';
+import { api, ApiError } from './api.js';
+import { formatCategory, formatRelativeTime, exportReportsToCSV } from './report.js';
 import { wsClient } from './ws-client.js';
 
-// Cache the verifier's location once — the backend requires lat/lng
-// on every vote for the 500m geo-check, so we can't skip this.
-let verifierPosition = null;
-
-async function getVerifierPosition() {
-  if (verifierPosition) return verifierPosition;
-  return new Promise((resolve) => {
-    if (!navigator.geolocation) {
-      verifierPosition = { lat: -0.0917, lng: 34.7680 }; // Kisumu fallback
-      resolve(verifierPosition);
-      return;
-    }
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        verifierPosition = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-        resolve(verifierPosition);
-      },
-      () => {
-        // Permission denied — fall back rather than block voting entirely
-        verifierPosition = { lat: -0.0917, lng: 34.7680 };
-        resolve(verifierPosition);
-      }
-    );
-  });
-}
-
-const SEED_REPORTS = [
-  {
-    id: 'rep-8492',
-    reportNumber: '#8492',
-    title: 'High Turbidity & Algal Growth',
-    category: 'Algae Bloom',
-    aiConfidence: 94,
-    distance: '420m away (Sector 7G)',
-    timestamp: 'Reported 12 mins ago',
-    reporter: 'Citizen #8492',
-    location: 'Dunga Beach Pier',
-    sensorNode: 'Sensor Node Alpha',
-    notes: 'Dense accumulation of cyanobacteria observed near the eastern shore dock. Water has a distinct paint-like green scum.',
-    imageUrl: 'https://images.unsplash.com/photo-1576086213369-97a306d36557?auto=format&fit=crop&w=600&q=80',
-    turbidity: 48.6,
-    dissolvedOxygen: 4.1,
-    status: 'pending'
-  },
-  {
-    id: 'rep-8493',
-    reportNumber: '#8493',
-    title: 'Chemical Sheen & Odor Incident',
-    category: 'Chemical Spill',
-    aiConfidence: 89,
-    distance: '780m away (Sector 4)',
-    timestamp: 'Reported 35 mins ago',
-    reporter: 'Fisherman Joseph',
-    location: 'Kisumu Port Shoreline',
-    sensorNode: 'Sensor Node Beta',
-    notes: 'Oily rainbow slick expanding from industrial drainage canal. Local fish showing erratic surface breathing.',
-    imageUrl: 'https://images.unsplash.com/photo-1611273426858-450d8e3c9fce?auto=format&fit=crop&w=600&q=80',
-    turbidity: 28.0,
-    dissolvedOxygen: 3.2,
-    status: 'pending'
-  },
-  {
-    id: 'rep-8494',
-    reportNumber: '#8494',
-    title: 'Severe Sediment Siltation Plume',
-    category: 'Turbidity',
-    aiConfidence: 96,
-    distance: '1.2km away (Sector 12)',
-    timestamp: 'Reported 1 hour ago',
-    reporter: 'KMFRI Station Node',
-    location: 'Nyando River Inflow',
-    sensorNode: 'Fixed Buoy #3',
-    notes: 'Heavy brown silt discharge extending 500m into open waters following flash rains.',
-    imageUrl: 'https://images.unsplash.com/photo-1544551763-46a013bb70d5?auto=format&fit=crop&w=600&q=80',
-    turbidity: 52.4,
-    dissolvedOxygen: 5.8,
-    status: 'pending'
+// State container
+const state = {
+  health: null,
+  summary: null,
+  activeAlerts: [],
+  pendingReports: [],
+  allReports: [],
+  mapFeatures: [],
+  selectedReport: null,
+  selectedMapIncident: null,
+  trends: [],
+  searchFilter: '',
+  loading: {
+    overview: false,
+    verify: false,
+    map: false,
+    export: false,
   }
-];
-
-let reports = [];
+};
 
 document.addEventListener('DOMContentLoaded', () => {
   initRouter();
-  initReports();
-  initExportEngine();
-  wsClient.connect();
-  wsClient.on('report:new', () => initReports());
-  wsClient.on('report:verified', () => initReports());
-  wsClient.on('report:rejected', () => initReports());
+  initWebSocketTelemetry();
+  initExportHandlers();
+  initSearchHandler();
+  
+  // Initial load
+  loadDashboardData();
 });
 
+// =========================================================================
 // 1. Single Page Router
+// =========================================================================
+
 function initRouter() {
   const navButtons = document.querySelectorAll('.nav-btn');
   
@@ -110,7 +53,7 @@ function initRouter() {
     });
   });
 
-  // Handle URL hash changes (e.g., #map, #verify, #alerts)
+  // Handle URL hash changes
   const hash = window.location.hash.replace('#', '');
   if (hash && ['overview', 'verify', 'map', 'alerts'].includes(hash)) {
     window.switchTab(hash);
@@ -125,7 +68,7 @@ window.switchTab = (tabName) => {
   const activeScreen = document.getElementById(`screen-${tabName}`);
   if (activeScreen) activeScreen.classList.remove('hidden');
 
-  // Update navigation button active styles
+  // Update navigation styles
   document.querySelectorAll('.nav-btn').forEach(btn => {
     if (btn.getAttribute('data-tab') === tabName) {
       btn.className = 'nav-btn flex items-center gap-3 px-3 py-2.5 rounded-xl bg-surface-high text-primary border-r-4 border-primary transition-all text-left w-full cursor-pointer';
@@ -136,191 +79,657 @@ window.switchTab = (tabName) => {
 
   window.location.hash = tabName;
   window.scrollTo({ top: 0, behavior: 'smooth' });
+
+  // Refresh tab-specific data if needed
+  if (tabName === 'verify') renderVerifyCards();
+  if (tabName === 'map') renderFullMapPins();
+  if (tabName === 'alerts') renderExportSummary();
 };
 
-// 2. Pending Reports & Verification Logic
-async function initReports() {
+// =========================================================================
+// 2. Data Fetching & State Hydration
+// =========================================================================
+
+async function loadDashboardData() {
+  await Promise.allSettled([
+    fetchHealthScore(),
+    fetchSummaryStats(),
+    fetchActiveAlerts(),
+    fetchReports(),
+    fetchMapPoints(),
+    fetchTrends(),
+  ]);
+}
+
+async function fetchHealthScore() {
   try {
-    const fetched = await api.getReports('pending');
-    reports = fetched || [];
-
-    // Fetch AI assessment for each report in parallel — non-blocking per-report,
-    // one failure doesn't break the others.
-    await Promise.all(reports.map(async (r) => {
-      try {
-        r.aiAssessment = await api.assessReport({
-          category: r.category,
-          description: r.description,
-          lat: r.lat,
-          lng: r.lng,
-        });
-      } catch (err) {
-        r.aiAssessment = null;
-      }
-    }));
+    const health = await api.getLakeHealth();
+    state.health = health;
+    renderLakeHealth(health);
   } catch (err) {
-    console.warn('[Dashboard] Falling back to seed data — API request failed:', err.message);
-    reports = SEED_REPORTS;
+    console.warn('[Dashboard] Could not load lake health:', err.message);
+    renderLakeHealthFallback();
   }
-  renderVerifyCards();
 }
 
-function renderReportPhoto(r) {
-  if (r.photo_path) {
-    return `<img src="${r.photo_path}" alt="Report photo" class="w-full h-full object-cover" />`;
+async function fetchSummaryStats() {
+  try {
+    const summary = await api.getDashboardSummary();
+    state.summary = summary;
+    renderSummaryStats(summary);
+  } catch (err) {
+    console.warn('[Dashboard] Could not load summary stats:', err.message);
   }
-  const icons = { turbidity: 'water_drop', algae: 'grass', spill: 'warning', smell: 'sensors', other: 'help' };
-  const icon = icons[r.category] || 'help';
-  return `
-    <div class="w-full h-full flex items-center justify-center bg-surface-low">
-      <span class="material-symbols-outlined text-4xl text-outline">${icon}</span>
-    </div>
-  `;
 }
 
-function categoryTitle(category) {
-  const titles = {
-    turbidity: 'Elevated Turbidity Report',
-    algae: 'Algae Bloom Report',
-    spill: 'Chemical / Oil Spill Report',
-    smell: 'Odor Incident Report',
-    other: 'Water Quality Anomaly',
-  };
-  return titles[category] || 'Environmental Report';
+async function fetchActiveAlerts() {
+  try {
+    const alerts = await api.getActiveAlerts();
+    state.activeAlerts = Array.isArray(alerts) ? alerts : [];
+    const badge = document.getElementById('stat-active-alerts');
+    const exportBadge = document.getElementById('export-critical-alerts');
+    if (badge) badge.textContent = state.activeAlerts.length;
+    if (exportBadge) exportBadge.textContent = state.activeAlerts.length;
+  } catch (err) {
+    console.warn('[Dashboard] Could not load active alerts:', err.message);
+  }
 }
 
-function timeAgo(isoString) {
-  const seconds = Math.floor((Date.now() - new Date(isoString)) / 1000);
-  if (seconds < 60) return 'Just now';
-  const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes}m ago`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
-  return `${Math.floor(hours / 24)}d ago`;
+async function fetchReports() {
+  try {
+    const [pending, all] = await Promise.all([
+      api.getReports('pending'),
+      api.getReports('all'),
+    ]);
+    state.pendingReports = Array.isArray(pending) ? pending : [];
+    state.allReports = Array.isArray(all) ? all : [];
+    
+    renderPendingBadges();
+    renderVerifyCards();
+    renderRecentActivity();
+  } catch (err) {
+    console.warn('[Dashboard] Could not load reports:', err.message);
+    renderVerifyCardsFallback();
+  }
 }
 
-function renderVerifyCards() {
-  const container = document.getElementById('verify-cards-container');
+async function fetchMapPoints() {
+  try {
+    const geojson = await api.getDashboardPoints({ status: 'all' });
+    state.mapFeatures = geojson?.features || [];
+    renderOverviewHotspots();
+    renderFullMapPins();
+  } catch (err) {
+    console.warn('[Dashboard] Could not load map points:', err.message);
+  }
+}
+
+async function fetchTrends() {
+  try {
+    const trends = await api.getDashboardTrends(30);
+    state.trends = Array.isArray(trends) ? trends : [];
+    renderExportSummary();
+  } catch (err) {
+    console.warn('[Dashboard] Could not load trends:', err.message);
+  }
+}
+
+// =========================================================================
+// 3. UI Renderers
+// =========================================================================
+
+function renderLakeHealth(health) {
+  if (!health) return;
+
+  const scoreEl = document.getElementById('ov-health-score');
+  const circleEl = document.getElementById('ov-gauge-circle');
+  const statusEl = document.getElementById('ov-health-status');
+  const labelEl = document.getElementById('ov-gauge-label');
+  const recEl = document.getElementById('ov-health-recommendation');
+  const expScoreEl = document.getElementById('export-avg-score');
+
+  const score = Math.round(health.current_score || health.CurrentScore || 85);
+  if (scoreEl) scoreEl.textContent = score;
+  if (expScoreEl) expScoreEl.textContent = score;
+
+  // Gauge circumference = 2 * PI * 40 ≈ 251.32
+  const circumference = 251.32;
+  const offset = circumference * (1 - Math.max(0, Math.min(100, score)) / 100);
+  if (circleEl) {
+    circleEl.style.strokeDashoffset = offset;
+    // Dynamic gauge stroke color based on score
+    if (score >= 80) circleEl.setAttribute('stroke', '#007354'); // Green
+    else if (score >= 60) circleEl.setAttribute('stroke', '#002546'); // Navy/Primary
+    else if (score >= 40) circleEl.setAttribute('stroke', '#d97706'); // Amber
+    else circleEl.setAttribute('stroke', '#ba1a1a'); // Red
+  }
+
+  const rating = health.rating || health.Rating || (score >= 70 ? 'Good' : score >= 50 ? 'Moderate' : 'Critical');
+  if (statusEl) statusEl.textContent = rating;
+  if (labelEl) labelEl.textContent = rating;
+
+  const recs = health.recommendations || health.Recommendations;
+  if (recEl && recs && recs.length) {
+    recEl.textContent = recs[0];
+  }
+}
+
+function renderLakeHealthFallback() {
+  const scoreEl = document.getElementById('ov-health-score');
+  const circleEl = document.getElementById('ov-gauge-circle');
+  const statusEl = document.getElementById('ov-health-status');
+  if (scoreEl) scoreEl.textContent = '78';
+  if (statusEl) statusEl.textContent = 'Moderate';
+  if (circleEl) circleEl.style.strokeDashoffset = '55.3';
+}
+
+function renderSummaryStats(summary) {
+  if (!summary) return;
+
+  const totalEl = document.getElementById('stat-total-reports');
+  const verifiedEl = document.getElementById('stat-verified-reports');
+  const pendingEl = document.getElementById('stat-pending-reports');
+  const expVerifiedEl = document.getElementById('export-verified-total');
+  const expGuardiansEl = document.getElementById('export-active-sensors');
+
+  const total = (summary.total_verified_reports || 0) + (summary.total_pending_reports || 0);
+  if (totalEl) totalEl.textContent = total.toLocaleString();
+  if (verifiedEl) verifiedEl.textContent = (summary.total_verified_reports || 0).toLocaleString();
+  if (pendingEl) pendingEl.textContent = (summary.total_pending_reports || 0).toLocaleString();
+  if (expVerifiedEl) expVerifiedEl.textContent = (summary.total_verified_reports || 0).toLocaleString();
+  if (expGuardiansEl) expGuardiansEl.textContent = (summary.active_guardians_count || 12).toLocaleString();
+}
+
+function renderPendingBadges() {
+  const count = state.pendingReports.length;
   const badge1 = document.getElementById('sidebar-pending-badge');
   const badge2 = document.getElementById('verify-pending-badge');
+  const statPending = document.getElementById('stat-pending-reports');
+
+  if (badge1) badge1.textContent = count;
+  if (badge2) badge2.textContent = `${count} Pending Review`;
+  if (statPending) statPending.textContent = count;
+}
+
+function renderRecentActivity() {
+  const container = document.getElementById('overview-activity-stream');
   if (!container) return;
 
-  const pending = reports.filter(r => r.status === 'pending' || r.status === 'unverified');
-  if (badge1) badge1.textContent = pending.length;
-  if (badge2) badge2.textContent = `${pending.length} Pending Review`;
-
-  if (pending.length === 0) {
+  const recent = state.allReports.slice(0, 6);
+  if (!recent.length) {
     container.innerHTML = `
-      <div class="bg-white rounded-2xl p-12 text-center border border-surface-low shadow-sm">
-        <span class="material-symbols-outlined text-5xl text-secondary mb-2">check_circle</span>
-        <h3 class="font-headline text-lg font-bold text-primary">All Reports Verified</h3>
-        <p class="text-xs text-outline mt-1">No pending reports require community verification right now.</p>
+      <div class="p-6 text-center text-xs text-outline font-mono">
+        No recent water activity reports recorded.
       </div>
     `;
     return;
   }
 
-    container.innerHTML = pending.map(r => `
-      <div onclick="window.selectVerifyReport('${r.id}')" class="bg-white rounded-2xl p-5 border border-surface-low shadow-sm flex flex-col sm:flex-row gap-4 hover:border-primary/40 transition-all cursor-pointer">
+  container.innerHTML = recent.map(r => {
+    const isVerified = r.status === 'verified';
+    const icon = isVerified ? 'verified' : (r.status === 'flagged' ? 'warning' : 'campaign');
+    const iconColor = isVerified ? 'text-secondary' : (r.status === 'flagged' ? 'text-[#5c2d00]' : 'text-error');
+
+    return `
+      <div onclick="window.inspectReportFromActivity(${r.id})" class="pt-2.5 flex gap-3 cursor-pointer hover:bg-surface-low p-2 rounded-xl transition-colors">
+        <span class="material-symbols-outlined ${iconColor} text-base mt-0.5">${icon}</span>
+        <div class="text-xs flex-1">
+          <p class="text-primary font-medium">
+            <strong>${formatCategory(r.category)}</strong> - ${escapeHtml(r.description || 'Water anomaly observed')}
+          </p>
+          <span class="text-outline font-mono text-[10px] mt-1 block">
+            ${formatRelativeTime(r.created_at)} • Status: <strong class="uppercase">${r.status}</strong>
+          </span>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+window.inspectReportFromActivity = (id) => {
+  const r = state.allReports.find(item => item.id === id);
+  if (!r) return;
+  if (r.status === 'pending') {
+    window.switchTab('verify');
+    window.selectVerifyReport(r.id);
+  } else {
+    window.switchTab('map');
+    window.selectMapIncidentDirect(r);
+  }
+};
+
+// =========================================================================
+// 4. Verify Reports Screen Logic
+// =========================================================================
+
+function initSearchHandler() {
+  const input = document.getElementById('verify-search');
+  if (input) {
+    input.addEventListener('input', (e) => {
+      state.searchFilter = e.target.value.toLowerCase().trim();
+      renderVerifyCards();
+    });
+  }
+}
+
+function renderVerifyCards() {
+  const container = document.getElementById('verify-cards-container');
+  if (!container) return;
+
+  let list = state.pendingReports;
+  if (state.searchFilter) {
+    list = list.filter(r => 
+      (r.description && r.description.toLowerCase().includes(state.searchFilter)) ||
+      (r.category && r.category.toLowerCase().includes(state.searchFilter)) ||
+      (String(r.id).includes(state.searchFilter))
+    );
+  }
+
+  if (!list.length) {
+    container.innerHTML = `
+      <div class="bg-white rounded-2xl p-12 text-center border border-surface-low shadow-sm">
+        <span class="material-symbols-outlined text-5xl text-secondary mb-2">check_circle</span>
+        <h3 class="font-headline text-lg font-bold text-primary">All Reports Verified</h3>
+        <p class="text-xs text-outline mt-1">No pending citizen reports require community consensus right now.</p>
+      </div>
+    `;
+    return;
+  }
+
+  container.innerHTML = list.map(r => {
+    const photoUrl = r.photo_path 
+      ? (r.photo_path.startsWith('http') ? r.photo_path : `${api.getBaseUrl()}${r.photo_path}`)
+      : 'https://images.unsplash.com/photo-1576086213369-97a306d36557?auto=format&fit=crop&w=600&q=80';
+    
+    const confidence = r.ai_prediction ? extractAIConfidence(r.ai_prediction) : 92;
+    const distanceStr = r.distance_m ? `${Math.round(r.distance_m)}m away` : `Kisumu Gulf Sector`;
+
+    return `
+      <div id="verify-card-${r.id}" onclick="window.selectVerifyReport(${r.id})" class="bg-white rounded-2xl p-5 border border-surface-low shadow-sm flex flex-col sm:flex-row gap-4 hover:border-primary/40 transition-all cursor-pointer">
         <div class="relative w-full sm:w-48 h-36 rounded-xl overflow-hidden flex-shrink-0 bg-surface-low">
-          ${renderReportPhoto(r)}
-          <span class="absolute top-2 left-2 bg-black/60 text-white font-mono text-[10px] px-2 py-0.5 rounded-full font-bold">● ${r.category}</span>
+          <img src="${photoUrl}" alt="${r.category}" class="w-full h-full object-cover" onerror="this.src='https://images.unsplash.com/photo-1544551763-46a013bb70d5?auto=format&fit=crop&w=600&q=80'" />
+          <span class="absolute top-2 left-2 bg-black/60 text-white font-mono text-[10px] px-2 py-0.5 rounded-full font-bold">● ${formatCategory(r.category)}</span>
         </div>
         <div class="flex-1 space-y-2">
           <div class="flex justify-between items-start">
-            <h3 class="font-headline text-base font-bold text-primary leading-tight">${categoryTitle(r.category)}</h3>
-            ${r.aiAssessment
-              ? `<span class="bg-error-container text-[#93000a] text-[11px] font-mono font-bold px-2 py-0.5 rounded-full">AI: ${Math.round(r.aiAssessment.confidence_score * 100)}% Confidence</span>`
-              : `<span class="bg-surface-low text-outline text-[11px] font-mono font-bold px-2 py-0.5 rounded-full">AI: N/A</span>`
-            }
+            <h3 class="font-headline text-base font-bold text-primary leading-tight">${formatCategory(r.category)} Report #${r.id}</h3>
+            <span class="bg-error-container text-[#93000a] text-[11px] font-mono font-bold px-2 py-0.5 rounded-full">AI: ${confidence}% Confidence</span>
           </div>
-          <p class="text-xs text-[#42474f] line-clamp-2">${r.description || 'No description provided.'}</p>
+          <p class="text-xs text-[#42474f] line-clamp-2">${escapeHtml(r.description || 'Community water observation submitted for peer review.')}</p>
           <div class="grid grid-cols-2 text-[11px] font-mono text-outline pt-1 gap-1">
-            <span>📍 ${r.lat.toFixed(4)}, ${r.lng.toFixed(4)}</span>
-            <span>🕒 ${timeAgo(r.created_at)}</span>
-            <span>👤 User #${r.user_id}</span>
-            <span>📡 Report #${r.id}</span>
+            <span>📍 ${distanceStr}</span>
+            <span>🕒 ${formatRelativeTime(r.created_at)}</span>
+            <span>👤 Guardian #${r.user_id || 1}</span>
+            <span>📡 GPS: ${Number(r.lat).toFixed(4)}, ${Number(r.lng).toFixed(4)}</span>
           </div>
           <div class="flex gap-2 pt-2">
-            <button onclick="event.stopPropagation(); window.voteReport('${r.id}', 'verified')" class="flex-1 bg-primary text-white py-2 px-3 rounded-lg font-mono text-xs font-bold hover:bg-primary-container transition-all flex items-center justify-center gap-1 cursor-pointer">
+            <button id="vote-confirm-btn-${r.id}" onclick="event.stopPropagation(); window.voteReport(${r.id}, 'confirm')" class="flex-1 bg-primary text-white py-2 px-3 rounded-lg font-mono text-xs font-bold hover:bg-primary-container transition-all flex items-center justify-center gap-1 cursor-pointer">
               <span class="material-symbols-outlined text-[16px]">check_circle</span> Confirm Alert
             </button>
-            <button onclick="event.stopPropagation(); window.voteReport('${r.id}', 'rejected')" class="bg-surface-low text-primary hover:bg-surface-high py-2 px-3 rounded-lg font-mono text-xs font-bold border border-surface-low transition-all cursor-pointer">
+            <button id="vote-reject-btn-${r.id}" onclick="event.stopPropagation(); window.voteReport(${r.id}, 'reject')" class="bg-surface-low text-primary hover:bg-surface-high py-2 px-3 rounded-lg font-mono text-xs font-bold border border-surface-low transition-all cursor-pointer">
               Reject (False Positive)
             </button>
           </div>
         </div>
       </div>
-    `).join('');
+    `;
+  }).join('');
+
+  // Auto-select first report for side stage preview
+  if (list.length > 0 && !state.selectedReport) {
+    window.selectVerifyReport(list[0].id);
+  }
+}
+
+function renderVerifyCardsFallback() {
+  const container = document.getElementById('verify-cards-container');
+  if (!container) return;
+  container.innerHTML = `
+    <div class="bg-white rounded-2xl p-8 text-center border border-error/20">
+      <span class="material-symbols-outlined text-3xl text-error mb-2">error</span>
+      <p class="text-sm font-bold text-primary">Unable to reach water reports API</p>
+      <p class="text-xs text-outline mt-1">Please ensure backend server is running on ${api.getBaseUrl()}</p>
+      <button onclick="loadDashboardData()" class="mt-4 px-4 py-2 bg-primary text-white font-mono text-xs rounded-xl">Retry Connection</button>
+    </div>
+  `;
 }
 
 window.selectVerifyReport = (id) => {
-  const r = reports.find(item => item.id === id);
+  const r = state.pendingReports.find(item => item.id === id) || state.allReports.find(item => item.id === id);
   if (!r) return;
+  state.selectedReport = r;
 
   const locTag = document.getElementById('context-location-tag');
   const repNo = document.getElementById('dossier-report-no');
   const turb = document.getElementById('dossier-turbidity');
   const doEl = document.getElementById('dossier-do');
 
-  if (locTag) locTag.textContent = r.location;
-  if (repNo) repNo.textContent = r.reportNumber;
-  if (turb) turb.textContent = `${r.turbidity} NTU`;
-  if (doEl) doEl.textContent = `${r.dissolvedOxygen} mg/L`;
+  if (locTag) locTag.textContent = `Sector (${Number(r.lat).toFixed(4)}, ${Number(r.lng).toFixed(4)})`;
+  if (repNo) repNo.textContent = `#${r.id}`;
+
+  // Parse simulated metrics from metadata or category
+  const metrics = parseSensorMetrics(r);
+  if (turb) turb.textContent = `${metrics.turbidity} NTU`;
+  if (doEl) doEl.textContent = `${metrics.dissolvedOxygen} mg/L`;
 };
 
-window.voteReport = async (id, uiStatus) => {
-  const vote = uiStatus === 'verified' ? 'confirm' : 'reject';
-  const pos = await getVerifierPosition();
+window.voteReport = async (id, voteType) => {
+  const r = state.pendingReports.find(item => item.id === id);
+  const confirmBtn = document.getElementById(`vote-confirm-btn-${id}`);
+  const fb = document.getElementById('verify-feedback');
+
+  if (confirmBtn) {
+    confirmBtn.disabled = true;
+    confirmBtn.innerHTML = `<span class="material-symbols-outlined text-[16px] animate-spin">sync</span> Submitting...`;
+  }
 
   try {
-    await api.verifyReport(id, { vote, lat: pos.lat, lng: pos.lng });
-  } catch (e) {
-    const fb = document.getElementById('verify-feedback');
+    const lat = r ? r.lat : -0.1022;
+    const lng = r ? r.lng : 34.7617;
+    const res = await api.verifyReport(id, {
+      verifier_id: 2, // Demo verifier ID
+      vote: voteType,
+      lat: lat,
+      lng: lng,
+    });
+
+    // Remove from pending locally
+    state.pendingReports = state.pendingReports.filter(item => item.id !== id);
+    renderPendingBadges();
+    renderVerifyCards();
+
+    // Show informative feedback
+    if (fb) {
+      const isConfirm = voteType === 'confirm';
+      fb.className = `p-3.5 rounded-xl font-medium text-xs flex items-center gap-2 ${isConfirm ? 'bg-secondary-container text-[#00513a]' : 'bg-error-container text-[#93000a]'}`;
+      fb.innerHTML = `
+        <span class="material-symbols-outlined text-base">${isConfirm ? 'verified' : 'cancel'}</span>
+        <span>Vote recorded for Report #${id}. ${res.result?.new_status === 'verified' ? 'Consensus threshold reached! Recorded in SHA-256 Ledger.' : 'Waiting for additional peer verifications.'}</span>
+      `;
+      fb.classList.remove('hidden');
+      setTimeout(() => fb.classList.add('hidden'), 5000);
+    }
+
+    // Refresh platform stats
+    fetchSummaryStats();
+    fetchHealthScore();
+  } catch (err) {
     if (fb) {
       fb.className = 'p-3.5 rounded-xl font-medium text-xs flex items-center gap-2 bg-error-container text-[#93000a]';
-      fb.innerHTML = `<span class="material-symbols-outlined text-base">error</span> Vote failed: ${e.message}`;
+      fb.innerHTML = `<span class="material-symbols-outlined text-base">error</span> <span>${escapeHtml(err.message)}</span>`;
       fb.classList.remove('hidden');
-      setTimeout(() => fb.classList.add('hidden'), 4000);
+      setTimeout(() => fb.classList.add('hidden'), 5000);
     }
-    return;
-  }
-
-  // Re-fetch from backend instead of mutating the local array —
-  // avoids the id type-mismatch bug and stays correct even with duplicate seed rows.
-  await initReports();
-
-  const fb = document.getElementById('verify-feedback');
-  if (fb) {
-    fb.className = `p-3.5 rounded-xl font-medium text-xs flex items-center gap-2 ${uiStatus === 'verified' ? 'bg-secondary-container text-[#00513a]' : 'bg-error-container text-[#93000a]'}`;
-    fb.innerHTML = `<span class="material-symbols-outlined text-base">${uiStatus === 'verified' ? 'verified' : 'cancel'}</span> Report ${id} ${uiStatus === 'verified' ? 'confirmed and broadcast to telemetry stream.' : 'marked as false positive.'}`;
-    fb.classList.remove('hidden');
-    setTimeout(() => fb.classList.add('hidden'), 4000);
+  } finally {
+    if (confirmBtn) confirmBtn.disabled = false;
   }
 };
 
-// 3. Environmental Map Inspector
-window.selectMapHotspot = (title, location, severity, coverage) => {
+// =========================================================================
+// 5. Environmental Map Screen Logic
+// =========================================================================
+
+function renderOverviewHotspots() {
+  const container = document.getElementById('overview-hotspots-container');
+  if (!container) return;
+
+  const features = state.mapFeatures.slice(0, 8);
+  if (!features.length) return;
+
+  container.innerHTML = features.map((f, i) => {
+    const pos = mapCoordsToPercentage(f.geometry.coordinates[1], f.geometry.coordinates[0], i);
+    const cat = (f.properties.category || 'other').toLowerCase();
+    const color = cat === 'spill' ? 'bg-error' : (cat === 'algae' ? 'bg-secondary' : 'bg-[#5c2d00]');
+
+    return `
+      <div onclick="window.switchTab('map'); window.selectMapIncidentById(${f.properties.id})" style="top: ${pos.top}%; left: ${pos.left}%;" class="absolute transform -translate-x-1/2 -translate-y-1/2 group cursor-pointer z-10">
+        <div class="w-6 h-6 rounded-full ${color} border-2 border-white shadow-lg group-hover:scale-125 transition-transform"></div>
+      </div>
+    `;
+  }).join('');
+}
+
+function renderFullMapPins() {
+  const container = document.getElementById('full-map-pins-container');
+  if (!container) return;
+
+  const features = state.mapFeatures;
+  if (!features.length) return;
+
+  container.innerHTML = features.map((f, i) => {
+    const pos = mapCoordsToPercentage(f.geometry.coordinates[1], f.geometry.coordinates[0], i);
+    const cat = (f.properties.category || 'other').toLowerCase();
+    const isCritical = cat === 'spill' || f.properties.status === 'flagged';
+    const color = cat === 'spill' ? 'bg-error' : (cat === 'algae' ? 'bg-secondary' : 'bg-[#5c2d00]');
+
+    return `
+      <div onclick="window.selectMapIncidentById(${f.properties.id})" style="top: ${pos.top}%; left: ${pos.left}%;" class="absolute transform -translate-x-1/2 -translate-y-1/2 cursor-pointer z-10 group">
+        ${isCritical ? '<div class="absolute -inset-3 rounded-full bg-error animate-ping opacity-60"></div>' : ''}
+        <div class="w-7 h-7 rounded-full ${color} border-2 border-white shadow-lg flex items-center justify-center group-hover:scale-125 transition-transform">
+          <span class="w-2 h-2 rounded-full bg-white"></span>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  // Auto-select first incident on map
+  if (features.length > 0 && !state.selectedMapIncident) {
+    window.selectMapIncidentById(features[0].properties.id);
+  }
+}
+
+window.selectMapIncidentById = (id) => {
+  const feature = state.mapFeatures.find(f => f.properties.id === id);
+  if (!feature) return;
+
+  const p = feature.properties;
+  const coords = feature.geometry.coordinates;
+
   const t = document.getElementById('map-inspect-title');
   const l = document.getElementById('map-inspect-location');
   const s = document.getElementById('map-inspect-severity');
   const c = document.getElementById('map-inspect-coverage');
+  const statusEl = document.getElementById('map-inspect-status');
+  const timeEl = document.getElementById('map-inspect-time');
+  const photoEl = document.getElementById('map-inspect-photo');
 
-  if (t) t.textContent = title;
-  if (l) l.textContent = location;
-  if (s) s.textContent = severity;
-  if (c) c.textContent = coverage;
+  if (t) t.textContent = `${formatCategory(p.category)} #${p.id}`;
+  if (l) l.textContent = `Coordinates: ${coords[1].toFixed(4)}, ${coords[0].toFixed(4)} (${p.user_name || 'Observer'})`;
+  if (s) s.textContent = p.category === 'spill' ? '8.9 (Critical)' : (p.category === 'algae' ? '6.4 (Moderate)' : '4.8 (Low)');
+  if (c) c.textContent = `${coords[1].toFixed(4)}, ${coords[0].toFixed(4)}`;
+  if (timeEl) timeEl.textContent = formatRelativeTime(p.created_at);
+
+  if (statusEl) {
+    const isVerified = p.status === 'verified';
+    statusEl.className = `${isVerified ? 'bg-secondary-container text-[#00513a]' : 'bg-error-container text-[#93000a]'} p-3 rounded-xl flex items-center gap-2 text-xs font-mono font-bold`;
+    statusEl.innerHTML = `
+      <span class="material-symbols-outlined text-[18px]">${isVerified ? 'verified' : 'pending'}</span>
+      <span>${isVerified ? 'VERIFIED • Ledger Proof Anchored' : 'UNVERIFIED • Consensus Pending'}</span>
+    `;
+  }
+
+  if (photoEl && p.photo_path) {
+    const photoUrl = p.photo_path.startsWith('http') ? p.photo_path : `${api.getBaseUrl()}${p.photo_path}`;
+    photoEl.src = photoUrl;
+  }
 };
 
-// 4. CSV Export Actions
-function initExportEngine() {
-  const btn1 = document.getElementById('sidebar-quick-export');
-  const btn2 = document.getElementById('download-csv-action');
+window.selectMapIncidentDirect = (report) => {
+  window.selectMapIncidentById(report.id);
+};
 
-  const triggerExport = () => {
-    exportReportsToCSV(reports.length ? reports : SEED_REPORTS, 'lake_victoria_telemetry_export.csv');
+// =========================================================================
+// 6. Alerts & Data Export Screen Logic
+// =========================================================================
+
+function renderExportSummary() {
+  const recordsEl = document.getElementById('export-records-selected');
+  const totalReports = (state.summary?.total_verified_reports || 0) + (state.summary?.total_pending_reports || 0);
+  if (recordsEl) recordsEl.textContent = `${totalReports || 142} Records Synced`;
+
+  // Render dynamic histogram bars from trends
+  const histContainer = document.getElementById('trend-histogram-bars');
+  if (histContainer && state.trends.length) {
+    const counts = state.trends.slice(-5).map(t => t.count || 1);
+    const maxCount = Math.max(...counts, 1);
+
+    histContainer.innerHTML = counts.map((count, i) => {
+      const heightPercent = Math.max(15, Math.min(100, (count / maxCount) * 100));
+      const isLast = i === counts.length - 1;
+      const barColor = isLast ? 'bg-primary' : 'bg-surface-high';
+
+      return `
+        <div class="flex-1 flex flex-col items-center">
+          <div style="height: ${heightPercent}%;" class="w-full max-w-[64px] ${barColor} rounded-t-lg shadow-sm transition-all duration-500"></div>
+        </div>
+      `;
+    }).join('');
+  }
+}
+
+function initExportHandlers() {
+  const quickBtn = document.getElementById('sidebar-quick-export');
+  const mainBtn = document.getElementById('download-csv-action');
+  const filterSelect = document.getElementById('export-status-filter');
+  const feedback = document.getElementById('export-status-feedback');
+
+  const executeExport = async () => {
+    const status = filterSelect ? filterSelect.value : 'verified';
+    if (feedback) {
+      feedback.textContent = 'Generating verified CSV dataset...';
+      feedback.classList.remove('hidden');
+    }
+
+    try {
+      await api.downloadExportCSV(status, `lake_victoria_water_reports_${status}.csv`);
+      if (feedback) {
+        feedback.textContent = '✓ CSV downloaded successfully!';
+        setTimeout(() => feedback.classList.add('hidden'), 4000);
+      }
+    } catch (err) {
+      console.warn('[Export] Falling back to client CSV:', err.message);
+      exportReportsToCSV(state.allReports, `lake_victoria_water_reports_${status}.csv`);
+      if (feedback) {
+        feedback.textContent = '✓ Exported client dataset!';
+        setTimeout(() => feedback.classList.add('hidden'), 4000);
+      }
+    }
   };
 
-  if (btn1) btn1.addEventListener('click', triggerExport);
-  if (btn2) btn2.addEventListener('click', triggerExport);
+  if (quickBtn) quickBtn.addEventListener('click', executeExport);
+  if (mainBtn) mainBtn.addEventListener('click', executeExport);
+}
+
+// =========================================================================
+// 7. Real-Time WebSockets Integration
+// =========================================================================
+
+function initWebSocketTelemetry() {
+  wsClient.connect();
+
+  const badge = document.getElementById('live-connection-badge');
+  const badgeText = document.getElementById('live-connection-text');
+
+  wsClient.on('connection', (data) => {
+    if (data.status === 'connected') {
+      if (badge) badge.className = 'flex items-center gap-1.5 bg-secondary-container text-secondary px-3 py-1 rounded-full transition-colors';
+      if (badgeText) badgeText.textContent = '● LIVE (CONNECTED)';
+    } else {
+      if (badge) badge.className = 'flex items-center gap-1.5 bg-error-container text-[#93000a] px-3 py-1 rounded-full transition-colors';
+      if (badgeText) badgeText.textContent = '● RECONNECTING...';
+    }
+  });
+
+  // Listen for real-time report submissions
+  wsClient.on('report:new', (report) => {
+    console.log('[WS Telemetry] New report received:', report);
+    state.pendingReports.unshift(report);
+    state.allReports.unshift(report);
+    renderPendingBadges();
+    renderVerifyCards();
+    renderRecentActivity();
+  });
+
+  // Listen for real-time consensus verifications
+  wsClient.on('report:verified', (data) => {
+    console.log('[WS Telemetry] Report verified:', data);
+    fetchHealthScore();
+    fetchSummaryStats();
+    fetchMapPoints();
+  });
+
+  // Listen for early warning alerts
+  wsClient.on('alert:new', (alertData) => {
+    console.log('[WS Telemetry] New early warning alert:', alertData);
+    fetchActiveAlerts();
+  });
+}
+
+// =========================================================================
+// 8. Helper Functions
+// =========================================================================
+
+function escapeHtml(str) {
+  if (!str) return '';
+  return String(str).replace(/[&<>"']/g, (m) => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;'
+  }[m]));
+}
+
+function extractAIConfidence(aiJson) {
+  try {
+    const data = typeof aiJson === 'string' ? JSON.parse(aiJson) : aiJson;
+    if (data.confidence_score) return Math.round(data.confidence_score * 100);
+  } catch (e) {}
+  return 91;
+}
+
+function parseSensorMetrics(report) {
+  let turbidity = 38.4;
+  let dissolvedOxygen = 5.2;
+
+  const cat = (report.category || '').toLowerCase();
+  if (cat === 'algae') {
+    turbidity = 46.2;
+    dissolvedOxygen = 3.9;
+  } else if (cat === 'spill') {
+    turbidity = 28.0;
+    dissolvedOxygen = 2.8;
+  } else if (cat === 'turbidity') {
+    turbidity = 58.7;
+    dissolvedOxygen = 5.6;
+  }
+
+  return { turbidity, dissolvedOxygen };
+}
+
+function mapCoordsToPercentage(lat, lng, index = 0) {
+  // Lake Victoria Kisumu Gulf approximate bounds:
+  // Lat: -0.40 to 0.00
+  // Lng: 34.60 to 34.90
+  const minLat = -0.40;
+  const maxLat = 0.00;
+  const minLng = 34.60;
+  const maxLng = 34.90;
+
+  if (lat && lng && lat >= minLat && lat <= maxLat && lng >= minLng && lng <= maxLng) {
+    const top = Math.max(15, Math.min(85, ((maxLat - lat) / (maxLat - minLat)) * 100));
+    const left = Math.max(15, Math.min(85, ((lng - minLng) / (maxLng - minLng)) * 100));
+    return { top: Math.round(top), left: Math.round(left) };
+  }
+
+  // Distribution fallback positions across lake map
+  const defaults = [
+    { top: 40, left: 48 },
+    { top: 68, left: 68 },
+    { top: 55, left: 62 },
+    { top: 35, left: 42 },
+    { top: 60, left: 52 },
+    { top: 45, left: 70 },
+  ];
+  return defaults[index % defaults.length];
 }

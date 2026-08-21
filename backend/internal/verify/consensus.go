@@ -12,7 +12,7 @@ import (
 
 const (
 	// MaxVerificationRadiusMeters is the maximum distance in meters a verifier can be from the report
-	MaxVerificationRadiusMeters = 100000.0
+	MaxVerificationRadiusMeters = 500.0
 	// DefaultConsensusThreshold is the weighted reputation score needed to verify or reject a report
 	DefaultConsensusThreshold = 3.0
 	// MaxVerificationsPerHour is the rate limit for a verifier within a rolling hour
