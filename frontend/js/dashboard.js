@@ -47,12 +47,6 @@ function bootstrapDashboard() {
   loadDashboardData();
 }
 
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', bootstrapDashboard);
-} else {
-  bootstrapDashboard();
-}
-
 // =========================================================================
 // 1. Single Page Router
 // =========================================================================
@@ -86,7 +80,7 @@ function initRouter() {
   });
 }
 
-window.switchTab = (tabName) => {
+function switchTab(tabName) {
   if (!VALID_TABS.includes(tabName)) {
     tabName = 'overview';
   }
@@ -126,7 +120,8 @@ window.switchTab = (tabName) => {
   if (tabName === 'verify') renderVerifyCards();
   if (tabName === 'map') renderFullMapPins();
   if (tabName === 'alerts') renderExportSummary();
-};
+}
+window.switchTab = switchTab;
 
 // =========================================================================
 // 2. Data Fetching & State Hydration
@@ -330,7 +325,7 @@ function renderRecentActivity() {
   }).join('');
 }
 
-window.inspectReportFromActivity = (id) => {
+function inspectReportFromActivity(id) {
   const r = state.allReports.find(item => item.id === id);
   if (!r) return;
   if (r.status === 'pending') {
@@ -340,7 +335,8 @@ window.inspectReportFromActivity = (id) => {
     window.switchTab('map');
     window.selectMapIncidentDirect(r);
   }
-};
+}
+window.inspectReportFromActivity = inspectReportFromActivity;
 
 // =========================================================================
 // 4. Verify Reports Screen Logic
@@ -438,7 +434,7 @@ function renderVerifyCardsFallback() {
   `;
 }
 
-window.selectVerifyReport = (id) => {
+function selectVerifyReport(id) {
   const r = state.pendingReports.find(item => item.id === id) || state.allReports.find(item => item.id === id);
   if (!r) return;
   state.selectedReport = r;
@@ -455,9 +451,10 @@ window.selectVerifyReport = (id) => {
   const metrics = parseSensorMetrics(r);
   if (turb) turb.textContent = `${metrics.turbidity} NTU`;
   if (doEl) doEl.textContent = `${metrics.dissolvedOxygen} mg/L`;
-};
+}
+window.selectVerifyReport = selectVerifyReport;
 
-window.voteReport = async (id, voteType) => {
+async function voteReport(id, voteType) {
   const r = state.pendingReports.find(item => item.id === id);
   const confirmBtn = document.getElementById(`vote-confirm-btn-${id}`);
   const fb = document.getElementById('verify-feedback');
@@ -507,7 +504,8 @@ window.voteReport = async (id, voteType) => {
   } finally {
     if (confirmBtn) confirmBtn.disabled = false;
   }
-};
+}
+window.voteReport = voteReport;
 
 // =========================================================================
 // 5. Environmental Map Screen Logic
@@ -562,7 +560,7 @@ function renderFullMapPins() {
   }
 }
 
-window.selectMapIncidentById = (id) => {
+function selectMapIncidentById(id) {
   const feature = state.mapFeatures.find(f => f.properties.id === id);
   if (!feature) return;
 
@@ -596,13 +594,15 @@ window.selectMapIncidentById = (id) => {
     const photoUrl = p.photo_path.startsWith('http') ? p.photo_path : `${api.getBaseUrl()}${p.photo_path}`;
     photoEl.src = photoUrl;
   }
-};
+}
+window.selectMapIncidentById = selectMapIncidentById;
 
-window.selectMapIncidentDirect = (report) => {
-  window.selectMapIncidentById(report.id);
-};
+function selectMapIncidentDirect(report) {
+  selectMapIncidentById(report.id);
+}
+window.selectMapIncidentDirect = selectMapIncidentDirect;
 
-window.selectMapHotspot = (title, location, severity, coverage, level = 'medium') => {
+function selectMapHotspot(title, location, severity, coverage, level = 'medium') {
   const t = document.getElementById('map-inspect-title');
   const l = document.getElementById('map-inspect-location');
   const s = document.getElementById('map-inspect-severity');
@@ -620,7 +620,8 @@ window.selectMapHotspot = (title, location, severity, coverage, level = 'medium'
       <span>${level === 'critical' ? 'FLAGGED • Active Investigation' : 'VERIFIED • Anomaly Logged'}</span>
     `;
   }
-};
+}
+window.selectMapHotspot = selectMapHotspot;
 
 async function initLiveMap() {
   if (!window.L) return;
@@ -827,4 +828,13 @@ function mapCoordsToPercentage(lat, lng, index = 0) {
     { top: 45, left: 70 },
   ];
   return defaults[index % defaults.length];
+}
+
+window.loadDashboardData = loadDashboardData;
+
+// Bootstrapping
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', bootstrapDashboard);
+} else {
+  bootstrapDashboard();
 }
