@@ -1,6 +1,9 @@
 /**
  * Guardians of the Lake - Unified API Helper
  * File: frontend/js/api.js
+ *
+ * Endpoint contract verified directly against backend handlers
+ * (handlers/verify.go, handlers/dashboard.go) — not guessed.
  */
 
 const BASE_URL = window.location.origin || 'http://localhost:3000';
@@ -31,8 +34,9 @@ async function apiFetch(endpoint, options = {}) {
   try {
     const response = await fetch(url, config);
     if (!response.ok) {
+      // Backend returns errors as { "error": "..." }, not { "message": "..." }
       const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.message || `Request failed with status ${response.status}`);
+      throw new Error(errorData.error || `Request failed with status ${response.status}`);
     }
     return await response.json();
   } catch (error) {
@@ -42,32 +46,71 @@ async function apiFetch(endpoint, options = {}) {
 }
 
 export const api = {
+  // POST /api/reports — multipart form (photo + lat/lng + category + description)
+  async submitReport(formData) {
+    return apiFetch('/api/reports', {
+      method: 'POST',
+      body: formData, // FormData — do NOT set Content-Type manually
+    });
+  },
+
   // GET /api/reports?status=pending
   async getReports(status = 'pending') {
     const query = status && status !== 'all' ? `?status=${status}` : '';
     return apiFetch(`/api/reports${query}`, { method: 'GET' });
   },
 
+  // GET /api/reports/:id
+  async getReport(id) {
+    return apiFetch(`/api/reports/${id}`, { method: 'GET' });
+  },
+
   // POST /api/reports/:id/verify
-  async verifyReport(id, status = 'verified', notes = '') {
+  // Backend REQUIRES lat/lng — request is rejected with 400 if both are 0.
+  // verifierId defaults server-side to 2 (demo) if omitted, but pass it if you have it.
+  async verifyReport(id, { vote, lat, lng, verifierId } = {}) {
+    if (vote !== 'confirm' && vote !== 'reject') {
+      throw new Error(`vote must be 'confirm' or 'reject', got '${vote}'`);
+    }
+    if (!lat || !lng) {
+      throw new Error('lat and lng are required to submit a verification vote');
+    }
     return apiFetch(`/api/reports/${id}/verify`, {
       method: 'POST',
-      body: { status, notes, verifiedAt: new Date().toISOString() },
+      body: { vote, lat, lng, verifier_id: verifierId },
     });
   },
 
-  // GET /api/health
-  async getHealthScore() {
-    return apiFetch('/api/health', { method: 'GET' });
+  // GET /api/reports/:id/verifications
+  async getVerifications(id) {
+    return apiFetch(`/api/reports/${id}/verifications`, { method: 'GET' });
   },
 
-  // GET /api/hotspots
-  async getHotspots() {
-    return apiFetch('/api/hotspots', { method: 'GET' });
+  // GET /api/dashboard/summary
+  async getDashboardSummary() {
+    return apiFetch('/api/dashboard/summary', { method: 'GET' });
+  },
+
+  // GET /api/dashboard/points?status=&category= — GeoJSON FeatureCollection for Leaflet
+  async getMapPoints({ status = 'all', category = 'all' } = {}) {
+    return apiFetch(`/api/dashboard/points?status=${status}&category=${category}`, { method: 'GET' });
+  },
+
+  // GET /api/dashboard/trends?days=7 — array of { date, category, count }
+  // NOTE: there is no backend health-score endpoint. If you want a 0-100
+  // "health score," it has to be computed client-side from this trend data
+  // (e.g. weighting spill/algae/turbidity counts) — not fetched directly.
+  async getTrends(days = 7) {
+    return apiFetch(`/api/dashboard/trends?days=${days}`, { method: 'GET' });
+  },
+
+  // GET /api/alerts/active
+  async getActiveAlerts() {
+    return apiFetch('/api/alerts/active', { method: 'GET' });
   },
 
   // GET /api/alerts
-  async getAlerts() {
+  async getAllAlerts() {
     return apiFetch('/api/alerts', { method: 'GET' });
-  }
+  },
 };
