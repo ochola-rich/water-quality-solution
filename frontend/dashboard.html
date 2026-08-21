@@ -59,6 +59,10 @@
         <span class="material-symbols-outlined text-[18px]">dashboard</span>
         <span>Overview</span>
       </button>
+      <button data-tab="report" class="nav-btn flex items-center gap-3 px-3 py-2.5 rounded-xl text-outline hover:bg-surface-low transition-all text-left w-full cursor-pointer">
+      <span class="material-symbols-outlined text-[18px]">add_location_alt</span>
+      <span>Report Pollution</span>
+      </button>
       <button data-tab="verify" class="nav-btn flex items-center gap-3 px-3 py-2.5 rounded-xl text-outline hover:bg-surface-low transition-all text-left w-full cursor-pointer">
         <span class="material-symbols-outlined text-[18px]">fact_check</span>
         <span>Verify Reports</span>
@@ -221,6 +225,86 @@
               <button onclick="window.switchTab('verify')" class="font-mono text-xs font-bold text-primary hover:underline cursor-pointer">View All Activity</button>
             </div>
           </div>
+        </div>
+      </section>
+
+      <!-- ================= REPORT POLLUTION SCREEN ================= -->
+      <section id="screen-report" class="tab-screen hidden space-y-6">
+        <div>
+          <h2 class="font-headline text-3xl font-bold text-primary">Report Pollution</h2>
+          <p class="text-sm text-outline mt-1">Spotted something wrong with the lake? Tell us where and what.</p>
+        </div>
+
+        <div class="max-w-lg bg-white rounded-2xl p-6 border border-surface-low shadow-sm space-y-5">
+          <form id="report-form" class="space-y-4">
+
+            <!-- Location -->
+            <div>
+              <label class="block text-xs font-mono font-bold text-outline mb-1">LOCATION</label>
+              <div id="location-status" class="text-sm bg-surface-low rounded-xl p-3 flex items-center gap-2">
+                <span class="material-symbols-outlined text-base animate-spin">sync</span>
+                <span>Getting your location...</span>
+              </div>
+
+              <button type="button" id="manual-entry-toggle" class="text-xs font-mono text-primary hover:underline mt-2">
+                Can't get automatic location? Enter manually
+              </button>
+
+              <div id="manual-entry-section" class="hidden mt-2 grid grid-cols-2 gap-2">
+                <div>
+                  <label class="block text-[10px] font-mono text-outline mb-1">LATITUDE</label>
+                  <input type="number" step="any" id="manual-lat" placeholder="-0.0917"
+                    class="w-full border border-surface-high rounded-xl p-2 text-sm" />
+                </div>
+                <div>
+                  <label class="block text-[10px] font-mono text-outline mb-1">LONGITUDE</label>
+                  <input type="number" step="any" id="manual-lng" placeholder="34.7680"
+                    class="w-full border border-surface-high rounded-xl p-2 text-sm" />
+                </div>
+                <button type="button" id="manual-entry-confirm" class="col-span-2 text-xs font-mono font-bold bg-surface-high text-primary rounded-xl py-2 hover:bg-surface-low">
+                  Use This Location
+                </button>
+              </div>
+
+              <input type="hidden" id="report-lat" name="lat" />
+              <input type="hidden" id="report-lng" name="lng" />
+            </div>
+
+            <!-- Category -->
+            <div>
+              <label for="report-category" class="block text-xs font-mono font-bold text-outline mb-1">CATEGORY</label>
+              <select id="report-category" name="category" required
+                class="w-full border border-surface-high rounded-xl p-3 text-sm">
+                <option value="turbidity">Turbidity / Muddy Water</option>
+                <option value="algae">Algae Bloom</option>
+                <option value="spill">Chemical / Oil Spill</option>
+                <option value="smell">Bad Odor</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+
+            <!-- Description -->
+            <div>
+              <label for="report-description" class="block text-xs font-mono font-bold text-outline mb-1">DESCRIPTION</label>
+              <textarea id="report-description" name="description" rows="3"
+                placeholder="What did you see? (optional, but helps verifiers)"
+                class="w-full border border-surface-high rounded-xl p-3 text-sm"></textarea>
+            </div>
+
+            <!-- Photo -->
+            <div>
+              <label for="report-photo" class="block text-xs font-mono font-bold text-outline mb-1">PHOTO (OPTIONAL)</label>
+              <input type="file" id="report-photo" name="photo" accept="image/*" capture="environment" class="w-full text-sm" />
+            </div>
+
+            <button type="submit" id="submit-btn"
+              class="w-full bg-primary text-white font-headline font-bold py-3 rounded-xl hover:bg-primary-container transition-all flex items-center justify-center gap-2 cursor-pointer">
+              <span class="material-symbols-outlined text-base">send</span>
+              Submit Report
+            </button>
+          </form>
+
+          <div id="submit-feedback" class="hidden p-4 rounded-xl text-sm"></div>
         </div>
       </section>
 
@@ -478,5 +562,6 @@
   </div>
 
   <script type="module" src="js/dashboard.js"></script>
+  <script type="module" src="js/report-form.js"></script>
 </body>
 </html>
