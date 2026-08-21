@@ -29,6 +29,9 @@ const state = {
   }
 };
 
+let lakeMap = null;
+let mapMarkers = null;
+
 document.addEventListener('DOMContentLoaded', () => {
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('/sw.js').catch((error) => console.warn('[SW] Registration failed:', error));
@@ -68,6 +71,7 @@ window.switchTab = (tabName) => {
 
   const activeScreen = document.getElementById(`screen-${tabName}`);
   if (activeScreen) activeScreen.classList.remove('hidden');
+  if (tabName === 'map') initLiveMap();
 
   // Update navigation styles
   document.querySelectorAll('.nav-btn').forEach(btn => {
@@ -558,6 +562,37 @@ window.selectMapIncidentById = (id) => {
 window.selectMapIncidentDirect = (report) => {
   window.selectMapIncidentById(report.id);
 };
+
+async function initLiveMap() {
+  if (!window.L) return;
+  const container = document.getElementById('live-map');
+  if (!container) return;
+  if (!lakeMap) {
+    lakeMap = window.L.map('live-map').setView([-0.0917, 34.7680], 12);
+    window.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 18,
+      attribution: '&copy; OpenStreetMap contributors',
+    }).addTo(lakeMap);
+    mapMarkers = window.L.layerGroup().addTo(lakeMap);
+  }
+  lakeMap.invalidateSize();
+  try {
+    const points = await api.getMapPoints({ status: 'all' });
+    mapMarkers.clearLayers();
+    if (points && points.features) {
+      points.features.forEach((feature) => {
+        const [lng, lat] = feature.geometry.coordinates;
+        const properties = feature.properties;
+        const color = { spill: '#ba1a1a', algae: '#007354', turbidity: '#5c2d00', smell: '#7d4c00' }[properties.category] || '#002546';
+        window.L.circleMarker([lat, lng], { radius: 9, color, fillColor: color, fillOpacity: 0.85 })
+          .bindPopup(`<strong>${formatCategory(properties.category)}</strong><br>${properties.status}<br>${escapeHtml(properties.description || 'No description provided.')}`)
+          .addTo(mapMarkers);
+      });
+    }
+  } catch (error) {
+    console.warn('[Map] Live GeoJSON unavailable:', error.message);
+  }
+}
 
 // =========================================================================
 // 6. Alerts & Data Export Screen Logic
