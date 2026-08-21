@@ -114,7 +114,7 @@ function renderFeed() {
   container.innerHTML = pendingList.map(r => `
     <div id="card-${r.id}" class="bg-white rounded-2xl p-5 border border-[#eff4ff] shadow-sm flex flex-col sm:flex-row gap-4">
       <div class="relative w-full sm:w-48 h-36 rounded-xl overflow-hidden flex-shrink-0 bg-gray-100">
-        <img src="${r.imageUrl}" alt="${r.title}" class="w-full h-full object-cover" />
+        ${renderReportPhoto(r)}
         <span class="absolute top-2 left-2 bg-black/60 text-white font-mono text-[10px] px-2 py-0.5 rounded-full font-bold">
           ● ${r.category}
         </span>

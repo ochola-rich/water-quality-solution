@@ -147,6 +147,19 @@ async function initReports() {
   renderVerifyCards();
 }
 
+function renderReportPhoto(r) {
+  if (r.photo_path) {
+    return `<img src="${r.photo_path}" alt="Report photo" class="w-full h-full object-cover" />`;
+  }
+  const icons = { turbidity: 'water_drop', algae: 'grass', spill: 'warning', smell: 'sensors', other: 'help' };
+  const icon = icons[r.category] || 'help';
+  return `
+    <div class="w-full h-full flex items-center justify-center bg-surface-low">
+      <span class="material-symbols-outlined text-4xl text-outline">${icon}</span>
+    </div>
+  `;
+}
+
 function renderVerifyCards() {
   const container = document.getElementById('verify-cards-container');
   const badge1 = document.getElementById('sidebar-pending-badge');
@@ -170,10 +183,10 @@ function renderVerifyCards() {
 
   container.innerHTML = pending.map(r => `
     <div onclick="window.selectVerifyReport('${r.id}')" class="bg-white rounded-2xl p-5 border border-surface-low shadow-sm flex flex-col sm:flex-row gap-4 hover:border-primary/40 transition-all cursor-pointer">
-      <div class="relative w-full sm:w-48 h-36 rounded-xl overflow-hidden flex-shrink-0 bg-surface-low">
-        <img src="${r.imageUrl}" alt="${r.title}" class="w-full h-full object-cover" />
-        <span class="absolute top-2 left-2 bg-black/60 text-white font-mono text-[10px] px-2 py-0.5 rounded-full font-bold">● ${r.category}</span>
-      </div>
+    <div class="relative w-full sm:w-48 h-36 rounded-xl overflow-hidden flex-shrink-0 bg-surface-low">
+      ${renderReportPhoto(r)}
+      <span class="absolute top-2 left-2 bg-black/60 text-white font-mono text-[10px] px-2 py-0.5 rounded-full font-bold">● ${r.category}</span>
+    </div>
       <div class="flex-1 space-y-2">
         <div class="flex justify-between items-start">
           <h3 class="font-headline text-base font-bold text-primary leading-tight">${r.title}</h3>
