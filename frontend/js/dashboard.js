@@ -30,6 +30,9 @@ const state = {
 };
 
 document.addEventListener('DOMContentLoaded', () => {
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/sw.js').catch((error) => console.warn('[SW] Registration failed:', error));
+  }
   initRouter();
   initWebSocketTelemetry();
   initExportHandlers();
@@ -39,8 +42,6 @@ document.addEventListener('DOMContentLoaded', () => {
   loadDashboardData();
 });
 
-// =========================================================================
-// 1. Single Page Router
 // =========================================================================
 
 function initRouter() {

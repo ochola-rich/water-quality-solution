@@ -149,19 +149,19 @@
           <div class="md:col-span-4 grid grid-cols-2 gap-4">
             <div class="bg-white rounded-2xl p-4 shadow-sm border border-surface-low">
               <span class="font-mono text-[11px] text-outline block uppercase">TOTAL REPORTS</span>
-              <div class="font-headline text-3xl font-bold text-primary mt-2">1,240</div>
+              <div id="ov-total-reports" class="font-headline text-3xl font-bold text-primary mt-2">—</div>
             </div>
             <div class="bg-white rounded-2xl p-4 shadow-sm border border-surface-low border-l-4 border-l-secondary">
               <span class="font-mono text-[11px] text-outline block uppercase">VERIFIED</span>
-              <div class="font-headline text-3xl font-bold text-secondary mt-2">892</div>
+              <div id="ov-verified-reports" class="font-headline text-3xl font-bold text-secondary mt-2">—</div>
             </div>
             <div class="bg-white rounded-2xl p-4 shadow-sm border border-surface-low border-l-4 border-l-[#5c2d00]">
               <span class="font-mono text-[11px] text-outline block uppercase">PENDING</span>
-              <div class="font-headline text-3xl font-bold text-[#5c2d00] mt-2">48</div>
+              <div id="ov-pending-reports" class="font-headline text-3xl font-bold text-[#5c2d00] mt-2">—</div>
             </div>
             <div class="bg-white rounded-2xl p-4 shadow-sm border border-surface-low border-l-4 border-l-error">
               <span class="font-mono text-[11px] text-outline block uppercase">ACTIVE ALERTS</span>
-              <div class="font-headline text-3xl font-bold text-error mt-2">5</div>
+              <div id="ov-active-alerts" class="font-headline text-3xl font-bold text-error mt-2">—</div>
             </div>
           </div>
 
@@ -295,6 +295,7 @@
             <div>
               <label for="report-photo" class="block text-xs font-mono font-bold text-outline mb-1">PHOTO (OPTIONAL)</label>
               <input type="file" id="report-photo" name="photo" accept="image/*" capture="environment" class="w-full text-sm" />
+              <p id="photo-ai-status" class="hidden mt-2 text-xs rounded-lg p-2 bg-surface-low text-outline"></p>
             </div>
 
             <button type="submit" id="submit-btn"

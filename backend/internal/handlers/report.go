@@ -80,6 +80,9 @@ func (h *ReportHandler) SubmitReport(c *fiber.Ctx) error {
 	if category == "" {
 		category = string(models.CategoryTurbidity)
 	}
+	if !isValidReportCategory(category) {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "invalid report category"})
+	}
 
 	deviceMeta := payload.DeviceMeta
 	if deviceMeta == "" {
@@ -265,6 +268,10 @@ func (h *ReportHandler) SyncOfflineReports(c *fiber.Ctx) error {
 		if category == "" {
 			category = string(models.CategoryTurbidity)
 		}
+		if !isValidReportCategory(category) {
+			errors = append(errors, fmt.Sprintf("skipped item (invalid category for uuid: %s)", item.ClientUUID))
+			continue
+		}
 
 		// Check idempotency if client_uuid is present
 		if item.ClientUUID != "" {
@@ -356,6 +363,15 @@ func (h *ReportHandler) SyncOfflineReports(c *fiber.Ctx) error {
 		Reports:        syncedReports,
 		Errors:         errors,
 	})
+}
+
+func isValidReportCategory(category string) bool {
+	switch models.ReportCategory(category) {
+	case models.CategoryTurbidity, models.CategoryAlgae, models.CategorySpill, models.CategorySmell, models.CategoryOther:
+		return true
+	default:
+		return false
+	}
 }
 
 // ListReports retrieves water reports, supporting status filters and nearest-first GPS sorting

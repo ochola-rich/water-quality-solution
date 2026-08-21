@@ -5,9 +5,9 @@ services:
       dockerfile: Dockerfile
     container_name: guardians_backend
     ports:
-      - "8080:8080"
+      - "3000:3000"
     environment:
-      - PORT=8080
+      - PORT=3000
       - DB_PATH=/app/data/guardians.db
       - MIGRATIONS_DIR=/app/migrations
       - UPLOADS_DIR=/app/uploads

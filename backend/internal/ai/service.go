@@ -50,7 +50,7 @@ func (s *Service) AssessWaterQuality(req AssessmentRequest) models.AIAssessmentR
 		wqi -= 35
 		confidence = 0.88
 		severity = "warning"
-		advisory = "WARNING: Cyanobacteria bloom detected. Potential microcystin toxins present. Boil water advisory recommended."
+		advisory = "WARNING: Possible cyanobacteria bloom. Avoid drinking or contacting the water and follow public-health guidance; boiling does not reliably remove cyanotoxins."
 		features = append(features, "chlorophyll_a_spike", "eutrophication", "dissolved_oxygen_drop")
 
 	case models.CategoryTurbidity:

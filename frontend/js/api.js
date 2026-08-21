@@ -6,7 +6,7 @@
  * (handlers/verify.go, handlers/dashboard.go) — not guessed.
  */
 
-const BASE_URL = window.location.origin || 'http://localhost:8080';
+const BASE_URL = window.location.origin || 'http://localhost:3000';
 
 async function apiFetch(endpoint, options = {}) {
   const url = endpoint.startsWith('http') ? endpoint : `${BASE_URL}${endpoint}`;
@@ -120,5 +120,18 @@ export const api = {
   // GET /api/alerts
   async getAllAlerts() {
     return apiFetch('/api/alerts', { method: 'GET' });
+  },
+
+  // Alias for consumers that need the complete alert history.
+  async getAlerts() {
+    return this.getAllAlerts();
+  },
+
+  async syncReports(reports) {
+    return apiFetch('/api/reports/sync', { method: 'POST', body: { reports } });
+  },
+
+  async getHealth() {
+    return apiFetch('/api/dashboard/health', { method: 'GET' });
   },
 };

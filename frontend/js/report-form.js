@@ -4,15 +4,22 @@
  */
 
 import { api } from './api.js';
+import { classifyWaterPhoto } from './ai-classifier.js';
+import { installOfflineSync, queueReport, syncQueuedReports } from './offline-queue.js';
 
 let currentPosition = null;
+let photoAssessment = null;
 
 document.addEventListener('DOMContentLoaded', () => {
   const form = document.getElementById('report-form');
   if (!form) return; // section not present on this page, skip silently
 
   acquireLocation();
+  installOfflineSync();
+  syncQueuedReports().catch(() => {});
   form.addEventListener('submit', handleSubmit);
+
+  document.getElementById('report-photo').addEventListener('change', assessPhoto);
 
   document.getElementById('manual-entry-toggle').addEventListener('click', () => {
     document.getElementById('manual-entry-section').classList.toggle('hidden');
@@ -47,6 +54,25 @@ function acquireLocation() {
   );
 }
 
+async function assessPhoto(event) {
+  const status = document.getElementById('photo-ai-status');
+  const file = event.target.files[0];
+  photoAssessment = null;
+  if (!file) {
+    status.classList.add('hidden');
+    return;
+  }
+  status.className = 'mt-2 text-xs rounded-lg p-2 bg-surface-low text-outline';
+  status.textContent = 'Analysing visual cues with MobileNet…';
+  try {
+    photoAssessment = await classifyWaterPhoto(file);
+    const labels = photoAssessment.predictions.map((item) => `${item.label} (${Math.round(item.confidence * 100)}%)`).join(', ');
+    status.textContent = `Visual cues (advisory only): ${labels}`;
+  } catch {
+    status.textContent = 'Photo saved for peer review. Visual classifier is unavailable offline.';
+  }
+}
+
 function setPosition(lat, lng, message) {
   currentPosition = { lat, lng };
   document.getElementById('report-lat').value = lat;
@@ -78,6 +104,8 @@ async function handleSubmit(e) {
   const formData = new FormData(form);
   formData.set('lat', currentPosition.lat);
   formData.set('lng', currentPosition.lng);
+  formData.set('client_uuid', crypto.randomUUID());
+  if (photoAssessment) formData.set('ai_prediction', JSON.stringify(photoAssessment));
 
   try {
     const report = await api.submitReport(formData);
@@ -86,7 +114,21 @@ async function handleSubmit(e) {
     document.getElementById('report-lat').value = currentPosition.lat;
     document.getElementById('report-lng').value = currentPosition.lng;
   } catch (err) {
-    showFeedback(`Submission failed: ${err.message}`, 'error');
+    if (navigator.onLine) {
+      showFeedback(`Submission failed: ${err.message}`, 'error');
+      return;
+    }
+    const queuedID = queueReport({
+      client_uuid: formData.get('client_uuid'),
+      lat: currentPosition.lat,
+      lng: currentPosition.lng,
+      category: formData.get('category'),
+      description: formData.get('description'),
+      ai_prediction: formData.get('ai_prediction') || '',
+      device_meta: '',
+    });
+    const photoNote = formData.get('photo')?.size ? ' The photo must be reattached when online.' : '';
+    showFeedback(`You are offline. Report ${queuedID.slice(0, 8)} was saved and will sync automatically.${photoNote}`, 'warning');
   } finally {
     submitBtn.disabled = false;
     submitBtn.innerHTML = `<span class="material-symbols-outlined text-base">send</span> Submit Report`;

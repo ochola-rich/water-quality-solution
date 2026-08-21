@@ -266,7 +266,7 @@ func (h *DashboardHandler) GetHealth(c *fiber.Ctx) error {
 		recommendations = append(recommendations, "CRITICAL: Deploy hydrocarbon containment booms and notify Maritime Authority immediately.")
 	}
 	if breakdown[string(models.CategoryAlgae)] >= 2 {
-		recommendations = append(recommendations, "WARNING: Elevated microcystin risk; issue boiling advisory and monitor water intake stations.")
+		recommendations = append(recommendations, "WARNING: Elevated microcystin risk; advise against drinking or contacting the water and monitor intake stations. Boiling does not reliably remove cyanotoxins.")
 	}
 	if breakdown[string(models.CategoryTurbidity)] >= 3 {
 		recommendations = append(recommendations, "CAUTION: Heavy runoff siltation detected; inspect upstream catchment soil barriers.")

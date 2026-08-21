@@ -29,12 +29,12 @@ COPY --from=builder /app/migrations /app/migrations
 # Create uploads directory
 RUN mkdir -p /app/uploads /app/data
 
-ENV PORT=8080
+ENV PORT=3000
 ENV DB_PATH=/app/data/guardians.db
 ENV MIGRATIONS_DIR=/app/migrations
 ENV UPLOADS_DIR=/app/uploads
 ENV STATIC_DIR=/app/frontend
 
-EXPOSE 8080
+EXPOSE 3000
 
 CMD ["/app/server"]

@@ -44,7 +44,7 @@ func main() {
 		port = *portFlag
 	}
 	if port == "" {
-		port = "8080"
+		port = "3000"
 	}
 
 	dbPath := os.Getenv("DB_PATH")

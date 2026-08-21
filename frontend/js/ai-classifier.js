@@ -49,3 +49,38 @@ export class LimnologyClassifier {
     return Math.min(99, confidence);
   }
 }
+
+let mobileNetPromise;
+
+async function loadMobileNet() {
+  if (!mobileNetPromise) {
+    mobileNetPromise = Promise.all([
+      import('https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/+esm'),
+      import('https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet@2.1.1/+esm'),
+    ]).then(([, mobilenet]) => mobilenet.load({ version: 2, alpha: 1.0 }));
+  }
+  return mobileNetPromise;
+}
+
+// MobileNet provides visual labels, not a medical/environmental diagnosis.
+// The result is stored as supporting evidence; server-side risk scoring remains advisory.
+export async function classifyWaterPhoto(file) {
+  if (!file) return null;
+  const image = new Image();
+  const objectURL = URL.createObjectURL(file);
+  try {
+    await new Promise((resolve, reject) => {
+      image.onload = resolve;
+      image.onerror = reject;
+      image.src = objectURL;
+    });
+    const model = await loadMobileNet();
+    const predictions = await model.classify(image, 3);
+    return {
+      model: 'MobileNet-v2',
+      predictions: predictions.map(({ className, probability }) => ({ label: className, confidence: Number(probability.toFixed(3)) })),
+    };
+  } finally {
+    URL.revokeObjectURL(objectURL);
+  }
+}
