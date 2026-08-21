@@ -24,7 +24,7 @@ Guardians of the Lake empowers local lakeside communities, fishermen, and citize
 
 ## 🚀 Build Plan & Architecture
 
-Detailed specification and build plan are documented in [guardians-of-the-lake-build-plan.md](guardians-of-the-lake-build-plan.md).
+Detailed specification and build plan are documented in [guardians-of-the-lake-build-plan.md](docs/guardians-of-the-lake-build-plan.md).
 
 ### 5-Stage Core Loop:
 1. **Citizen Report:** Geo-tagged report with photo, category, and device metadata.
@@ -32,6 +32,17 @@ Detailed specification and build plan are documented in [guardians-of-the-lake-b
 3. **Hash Ledger:** SHA-256 content hashing of verified report payload.
 4. **Live Dashboard & WebSockets:** Real-time GeoJSON map markers, aggregate statistics, and live activity streams over `/ws/dashboard`.
 5. **Lightning Micro-rewards:** Automated satoshi reward payout via LNbits.
+
+## Run the demo
+
+```bash
+cd backend
+go run cmd/server/main.go --migrate --seed --port 3000
+```
+
+Open `http://localhost:3000/dashboard.html`. The demo uses local seed data and clearly simulated fallbacks when no LNbits credentials are configured. The ledger anchor reference is also a demo-safe simulation until a real Hedera testnet adapter is configured.
+
+The demo flow is: submit a geotagged report (online or offline), have peers verify it within 500m, inspect the live GeoJSON map and dynamic health score, then export the resulting report data. Offline JSON reports sync automatically after reconnection using a client UUID to prevent duplicates. Photos taken offline must be reattached when online.
 
 ---
 
