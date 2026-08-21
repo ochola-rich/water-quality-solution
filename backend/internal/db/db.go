@@ -78,6 +78,16 @@ func RunMigrations(db *sql.DB, migrationsDir string) error {
 func SeedData(db *sql.DB) error {
 	log.Println("[DB] Seeding baseline test data...")
 
+	// Check if reports table already has data to avoid duplicate seeding
+	var reportCount int
+	if err := db.QueryRow("SELECT COUNT(*) FROM reports").Scan(&reportCount); err != nil {
+		return fmt.Errorf("failed to check reports table count: %w", err)
+	}
+	if reportCount > 0 {
+		log.Println("[DB] Reports table already has data, skipping seed")
+		return nil
+	}
+
 	// 1. Seed test users
 	users := []struct {
 		phoneHash       string
