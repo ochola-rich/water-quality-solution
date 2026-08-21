@@ -143,6 +143,21 @@ async function initReports() {
   try {
     const fetched = await api.getReports('pending');
     reports = fetched || [];
+
+    // Fetch AI assessment for each report in parallel — non-blocking per-report,
+    // one failure doesn't break the others.
+    await Promise.all(reports.map(async (r) => {
+      try {
+        r.aiAssessment = await api.assessReport({
+          category: r.category,
+          description: r.description,
+          lat: r.lat,
+          lng: r.lng,
+        });
+      } catch (err) {
+        r.aiAssessment = null;
+      }
+    }));
   } catch (err) {
     console.warn('[Dashboard] Falling back to seed data — API request failed:', err.message);
     reports = SEED_REPORTS;
@@ -193,7 +208,10 @@ function renderVerifyCards() {
       <div class="flex-1 space-y-2">
         <div class="flex justify-between items-start">
           <h3 class="font-headline text-base font-bold text-primary leading-tight">${r.title}</h3>
-          <span class="bg-error-container text-[#93000a] text-[11px] font-mono font-bold px-2 py-0.5 rounded-full">AI: ${r.aiConfidence}% Confidence</span>
+          ${r.aiAssessment
+          ? `<span class="bg-error-container text-[#93000a] text-[11px] font-mono font-bold px-2 py-0.5 rounded-full">AI: ${Math.round(r.aiAssessment.confidence_score * 100)}% Confidence</span>`
+          : `<span class="bg-surface-low text-outline text-[11px] font-mono font-bold px-2 py-0.5 rounded-full">AI: N/A</span>`
+        }
         </div>
         <p class="text-xs text-[#42474f] line-clamp-2">${r.notes}</p>
         <div class="grid grid-cols-2 text-[11px] font-mono text-outline pt-1 gap-1">

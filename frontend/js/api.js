@@ -46,6 +46,14 @@ async function apiFetch(endpoint, options = {}) {
 }
 
 export const api = {
+  // POST /api/ai/assess — { category, description, lat, lng } → water quality assessment
+  // confidence_score is 0.0–1.0, NOT a percentage — multiply by 100 to display
+  async assessReport({ category, description, lat, lng }) {
+    return apiFetch('/api/ai/assess', {
+      method: 'POST',
+      body: { category, description, lat, lng },
+    });
+  },
   // POST /api/reports — multipart form (photo + lat/lng + category + description)
   async submitReport(formData) {
     return apiFetch('/api/reports', {

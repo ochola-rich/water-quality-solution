@@ -93,15 +93,54 @@ async function handleSubmit(e) {
   }
 }
 
-function handleSubmitSuccess(report) {
+async function handleSubmitSuccess(report) {
   if (typeof window.refreshReports === 'function') {
-    window.refreshReports(); // instant update for your own submission
+    window.refreshReports();
   }
+
   if (report.status === 'flagged') {
     showFeedback(`Report #${report.id} submitted, but flagged for review (unusual submission pattern detected). A verifier will check it manually.`, 'warning');
-  } else {
-    showFeedback(`Report #${report.id} submitted successfully! It's now pending peer verification.`, 'success');
+    return;
   }
+
+  showFeedback(`Report #${report.id} submitted successfully! It's now pending peer verification.`, 'success');
+
+  // Run AI assessment and append its advisory as a follow-up — non-blocking,
+  // submission already succeeded regardless of whether this call works.
+  try {
+    const assessment = await api.assessReport({
+      category: report.category,
+      description: report.description,
+      lat: report.lat,
+      lng: report.lng,
+    });
+    appendAssessment(assessment);
+  } catch (err) {
+    console.warn('[AI] Assessment failed (non-critical):', err.message);
+  }
+}
+
+function appendAssessment(assessment) {
+  const fb = document.getElementById('submit-feedback');
+  const confidencePct = Math.round(assessment.confidence_score * 100);
+  const severityColors = {
+    critical: 'bg-error-container text-[#93000a]',
+    warning: 'bg-[#fff3cd] text-[#7a5b00]',
+    normal: 'bg-secondary-container text-[#00513a]',
+  };
+  const badgeClass = severityColors[assessment.severity] || severityColors.normal;
+
+  const assessmentEl = document.createElement('div');
+  assessmentEl.className = `mt-3 p-3 rounded-xl text-xs space-y-1 ${badgeClass}`;
+  assessmentEl.innerHTML = `
+    <div class="flex justify-between items-center font-mono font-bold">
+      <span>AI ASSESSMENT — ${assessment.severity.toUpperCase()}</span>
+      <span>${confidencePct}% confidence</span>
+    </div>
+    <p>${assessment.advisory_notice}</p>
+    <p class="opacity-75">Water Quality Index: ${assessment.water_quality_index}/100</p>
+  `;
+  fb.after(assessmentEl);
 }
 
 function showFeedback(message, type) {
