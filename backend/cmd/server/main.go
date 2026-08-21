@@ -62,6 +62,9 @@ func main() {
 		uploadsDir = "./uploads"
 	}
 	_ = os.MkdirAll(uploadsDir, 0755)
+	if dbDir := filepath.Dir(dbPath); dbDir != "" && dbDir != "." {
+		_ = os.MkdirAll(dbDir, 0755)
+	}
 
 	// 3. Connect to SQLite
 	database, err := db.InitDB(dbPath)
@@ -138,14 +141,32 @@ func main() {
 	// Serve Static Frontend & Photo Uploads
 	staticDir := os.Getenv("STATIC_DIR")
 	if staticDir == "" {
-		staticDir = "../frontend"
+		if _, err := os.Stat("./frontend"); err == nil {
+			staticDir = "./frontend"
+		} else if _, err := os.Stat("../frontend"); err == nil {
+			staticDir = "../frontend"
+		} else if _, err := os.Stat("/app/frontend"); err == nil {
+			staticDir = "/app/frontend"
+		} else {
+			staticDir = "../frontend"
+		}
 	}
 	if absStatic, err := filepath.Abs(staticDir); err == nil {
-		app.Static("/", absStatic)
+		app.Static("/", absStatic, fiber.Static{
+			Index: "index.html",
+		})
 	}
 	if absUploads, err := filepath.Abs(uploadsDir); err == nil {
 		app.Static("/uploads", absUploads)
 	}
+
+	// Convenience root and page routes
+	app.Get("/dashboard", func(c *fiber.Ctx) error {
+		return c.Redirect("/dashboard.html")
+	})
+	app.Get("/verify", func(c *fiber.Ctx) error {
+		return c.Redirect("/verify.html")
+	})
 
 	// Health Check
 	app.Get("/healthz", func(c *fiber.Ctx) error {
