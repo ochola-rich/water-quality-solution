@@ -94,6 +94,9 @@ document.addEventListener('DOMContentLoaded', () => {
   initReports();
   initExportEngine();
   wsClient.connect();
+  wsClient.on('report:new', () => initReports());
+  wsClient.on('report:verified', () => initReports());
+  wsClient.on('report:rejected', () => initReports());
 });
 
 // 1. Single Page Router

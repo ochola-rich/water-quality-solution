@@ -94,6 +94,9 @@ async function handleSubmit(e) {
 }
 
 function handleSubmitSuccess(report) {
+  if (typeof window.refreshReports === 'function') {
+    window.refreshReports(); // instant update for your own submission
+  }
   if (report.status === 'flagged') {
     showFeedback(`Report #${report.id} submitted, but flagged for review (unusual submission pattern detected). A verifier will check it manually.`, 'warning');
   } else {
