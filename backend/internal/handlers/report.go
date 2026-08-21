@@ -69,6 +69,7 @@ func (h *ReportHandler) SubmitReport(c *fiber.Ctx) error {
 	if payload.UserID <= 0 {
 		payload.UserID = 1 // Default demo user
 	}
+	ensureUserExists(h.DB, payload.UserID)
 
 	if payload.Lat == 0 && payload.Lng == 0 {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
@@ -259,6 +260,7 @@ func (h *ReportHandler) SyncOfflineReports(c *fiber.Ctx) error {
 		if item.UserID <= 0 {
 			item.UserID = 1
 		}
+		ensureUserExists(h.DB, item.UserID)
 		if item.Lat == 0 && item.Lng == 0 {
 			errors = append(errors, fmt.Sprintf("skipped item (missing coordinates for uuid: %s)", item.ClientUUID))
 			continue
@@ -455,4 +457,17 @@ func (h *ReportHandler) GetReport(c *fiber.Ctx) error {
 	}
 
 	return c.JSON(r)
+}
+
+func ensureUserExists(db *sql.DB, userID int64) {
+	if db == nil || userID <= 0 {
+		return
+	}
+	var dummy int
+	if err := db.QueryRow("SELECT 1 FROM users WHERE id = ?", userID).Scan(&dummy); err != nil {
+		_, _ = db.Exec(
+			`INSERT OR IGNORE INTO users (id, phone_hash, display_name, role, reputation_score, tier) VALUES (?, ?, ?, ?, ?, ?)`,
+			userID, fmt.Sprintf("phone_hash_user_%d", userID), fmt.Sprintf("Guardian #%d", userID), "citizen", 3.0, "water_scout",
+		)
+	}
 }

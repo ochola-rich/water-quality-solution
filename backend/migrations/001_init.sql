@@ -10,6 +10,13 @@ CREATE TABLE IF NOT EXISTS users (
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Seed default baseline users to enforce Foreign Key integrity for demo/citizen submissions
+INSERT OR IGNORE INTO users (id, phone_hash, display_name, role, reputation_score, tier)
+VALUES 
+  (1, 'phone_hash_wanja_001', 'Wanja Rouwel', 'admin', 5.0, 'lake_guardian'),
+  (2, 'phone_hash_berna_002', 'Bernadette Akinyi', 'institution', 4.5, 'trusted_verifier'),
+  (3, 'phone_hash_rich_003', 'Otieno Richard', 'citizen', 3.8, 'water_scout');
+
 CREATE TABLE IF NOT EXISTS reports (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   user_id INTEGER NOT NULL REFERENCES users(id),

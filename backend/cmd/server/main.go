@@ -82,11 +82,13 @@ func main() {
 		_ = db.RunMigrations(database, migrationsDir)
 	}
 
-	// 5. Seed data if requested
-	if *seedFlag {
+	// 5. Seed data if requested or ensure baseline data exists on empty DB
+	if *seedFlag || os.Getenv("AUTO_SEED") == "true" {
 		if err := db.SeedData(database); err != nil {
 			log.Printf("Warning: Failed to seed data: %v", err)
 		}
+	} else {
+		_ = db.SeedData(database)
 	}
 
 	// 6. Initialize WebSocket Hub
