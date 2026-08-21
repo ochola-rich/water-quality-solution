@@ -28,8 +28,9 @@ export class LiveTelemetryClient {
       this.ws.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
-          const type = data.type || data.event || 'message';
-          this.emit(type, data.payload || data);
+          const type = data.event || data.type || 'message';
+          // Backend sends { event, data, timestamp } — unwrap to just the payload
+          this.emit(type, data.data !== undefined ? data.data : data);
         } catch (e) {
           console.error('[WS] Error parsing message:', e);
         }
