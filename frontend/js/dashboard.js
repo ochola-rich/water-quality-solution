@@ -178,6 +178,27 @@ function renderReportPhoto(r) {
   `;
 }
 
+function categoryTitle(category) {
+  const titles = {
+    turbidity: 'Elevated Turbidity Report',
+    algae: 'Algae Bloom Report',
+    spill: 'Chemical / Oil Spill Report',
+    smell: 'Odor Incident Report',
+    other: 'Water Quality Anomaly',
+  };
+  return titles[category] || 'Environmental Report';
+}
+
+function timeAgo(isoString) {
+  const seconds = Math.floor((Date.now() - new Date(isoString)) / 1000);
+  if (seconds < 60) return 'Just now';
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  return `${Math.floor(hours / 24)}d ago`;
+}
+
 function renderVerifyCards() {
   const container = document.getElementById('verify-cards-container');
   const badge1 = document.getElementById('sidebar-pending-badge');
@@ -199,38 +220,38 @@ function renderVerifyCards() {
     return;
   }
 
-  container.innerHTML = pending.map(r => `
-    <div onclick="window.selectVerifyReport('${r.id}')" class="bg-white rounded-2xl p-5 border border-surface-low shadow-sm flex flex-col sm:flex-row gap-4 hover:border-primary/40 transition-all cursor-pointer">
-    <div class="relative w-full sm:w-48 h-36 rounded-xl overflow-hidden flex-shrink-0 bg-surface-low">
-      ${renderReportPhoto(r)}
-      <span class="absolute top-2 left-2 bg-black/60 text-white font-mono text-[10px] px-2 py-0.5 rounded-full font-bold">● ${r.category}</span>
-    </div>
-      <div class="flex-1 space-y-2">
-        <div class="flex justify-between items-start">
-          <h3 class="font-headline text-base font-bold text-primary leading-tight">${r.title}</h3>
-          ${r.aiAssessment
-          ? `<span class="bg-error-container text-[#93000a] text-[11px] font-mono font-bold px-2 py-0.5 rounded-full">AI: ${Math.round(r.aiAssessment.confidence_score * 100)}% Confidence</span>`
-          : `<span class="bg-surface-low text-outline text-[11px] font-mono font-bold px-2 py-0.5 rounded-full">AI: N/A</span>`
-        }
+    container.innerHTML = pending.map(r => `
+      <div onclick="window.selectVerifyReport('${r.id}')" class="bg-white rounded-2xl p-5 border border-surface-low shadow-sm flex flex-col sm:flex-row gap-4 hover:border-primary/40 transition-all cursor-pointer">
+        <div class="relative w-full sm:w-48 h-36 rounded-xl overflow-hidden flex-shrink-0 bg-surface-low">
+          ${renderReportPhoto(r)}
+          <span class="absolute top-2 left-2 bg-black/60 text-white font-mono text-[10px] px-2 py-0.5 rounded-full font-bold">● ${r.category}</span>
         </div>
-        <p class="text-xs text-[#42474f] line-clamp-2">${r.notes}</p>
-        <div class="grid grid-cols-2 text-[11px] font-mono text-outline pt-1 gap-1">
-          <span>📍 ${r.distance}</span>
-          <span>🕒 ${r.timestamp}</span>
-          <span>👤 ${r.reporter}</span>
-          <span>📡 ${r.sensorNode}</span>
-        </div>
-        <div class="flex gap-2 pt-2">
-          <button onclick="event.stopPropagation(); window.voteReport('${r.id}', 'verified')" class="flex-1 bg-primary text-white py-2 px-3 rounded-lg font-mono text-xs font-bold hover:bg-primary-container transition-all flex items-center justify-center gap-1 cursor-pointer">
-            <span class="material-symbols-outlined text-[16px]">check_circle</span> Confirm Alert
-          </button>
-          <button onclick="event.stopPropagation(); window.voteReport('${r.id}', 'rejected')" class="bg-surface-low text-primary hover:bg-surface-high py-2 px-3 rounded-lg font-mono text-xs font-bold border border-surface-low transition-all cursor-pointer">
-            Reject (False Positive)
-          </button>
+        <div class="flex-1 space-y-2">
+          <div class="flex justify-between items-start">
+            <h3 class="font-headline text-base font-bold text-primary leading-tight">${categoryTitle(r.category)}</h3>
+            ${r.aiAssessment
+              ? `<span class="bg-error-container text-[#93000a] text-[11px] font-mono font-bold px-2 py-0.5 rounded-full">AI: ${Math.round(r.aiAssessment.confidence_score * 100)}% Confidence</span>`
+              : `<span class="bg-surface-low text-outline text-[11px] font-mono font-bold px-2 py-0.5 rounded-full">AI: N/A</span>`
+            }
+          </div>
+          <p class="text-xs text-[#42474f] line-clamp-2">${r.description || 'No description provided.'}</p>
+          <div class="grid grid-cols-2 text-[11px] font-mono text-outline pt-1 gap-1">
+            <span>📍 ${r.lat.toFixed(4)}, ${r.lng.toFixed(4)}</span>
+            <span>🕒 ${timeAgo(r.created_at)}</span>
+            <span>👤 User #${r.user_id}</span>
+            <span>📡 Report #${r.id}</span>
+          </div>
+          <div class="flex gap-2 pt-2">
+            <button onclick="event.stopPropagation(); window.voteReport('${r.id}', 'verified')" class="flex-1 bg-primary text-white py-2 px-3 rounded-lg font-mono text-xs font-bold hover:bg-primary-container transition-all flex items-center justify-center gap-1 cursor-pointer">
+              <span class="material-symbols-outlined text-[16px]">check_circle</span> Confirm Alert
+            </button>
+            <button onclick="event.stopPropagation(); window.voteReport('${r.id}', 'rejected')" class="bg-surface-low text-primary hover:bg-surface-high py-2 px-3 rounded-lg font-mono text-xs font-bold border border-surface-low transition-all cursor-pointer">
+              Reject (False Positive)
+            </button>
+          </div>
         </div>
       </div>
-    </div>
-  `).join('');
+    `).join('');
 }
 
 window.selectVerifyReport = (id) => {
