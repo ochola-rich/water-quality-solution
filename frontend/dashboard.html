@@ -108,7 +108,7 @@
     </header>
 
     <!-- Main Dynamic Content Screens -->
-    <main class="p-6 md:p-8 max-w-7xl mx-auto w-full">
+    <main class="p-6 md:p-8 pb-24 md:pb-8 max-w-7xl mx-auto w-full">
 
       <!-- ================= 1. OVERVIEW SCREEN ================= -->
       <section id="screen-overview" class="tab-screen space-y-6">
@@ -563,6 +563,31 @@
       </section>
 
     </main>
+
+    <!-- Mobile Bottom Navigation Bar -->
+    <nav class="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-surface-low px-2 py-1.5 flex justify-around items-center z-30 shadow-lg">
+      <button data-tab="overview" class="nav-btn mobile-nav-btn flex flex-col items-center justify-center py-1 text-primary font-bold">
+        <span class="material-symbols-outlined text-[20px]">dashboard</span>
+        <span class="font-mono text-[10px]">Overview</span>
+      </button>
+      <button data-tab="report" class="nav-btn mobile-nav-btn flex flex-col items-center justify-center py-1 text-outline hover:text-primary">
+        <span class="material-symbols-outlined text-[20px]">add_location_alt</span>
+        <span class="font-mono text-[10px]">Report</span>
+      </button>
+      <button data-tab="verify" class="nav-btn mobile-nav-btn flex flex-col items-center justify-center py-1 text-outline hover:text-primary relative">
+        <span class="material-symbols-outlined text-[20px]">fact_check</span>
+        <span class="font-mono text-[10px]">Verify</span>
+        <span id="mobile-pending-badge" class="absolute top-0 right-1 bg-error-container text-[#93000a] text-[9px] px-1 rounded-full font-mono font-bold">3</span>
+      </button>
+      <button data-tab="map" class="nav-btn mobile-nav-btn flex flex-col items-center justify-center py-1 text-outline hover:text-primary">
+        <span class="material-symbols-outlined text-[20px]">map</span>
+        <span class="font-mono text-[10px]">Map</span>
+      </button>
+      <button data-tab="alerts" class="nav-btn mobile-nav-btn flex flex-col items-center justify-center py-1 text-outline hover:text-primary">
+        <span class="material-symbols-outlined text-[20px]">notifications_active</span>
+        <span class="font-mono text-[10px]">Alerts</span>
+      </button>
+    </nav>
   </div>
 
   <script type="module" src="js/dashboard.js"></script>

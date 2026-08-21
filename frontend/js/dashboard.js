@@ -32,7 +32,9 @@ const state = {
 let lakeMap = null;
 let mapMarkers = null;
 
-document.addEventListener('DOMContentLoaded', () => {
+const VALID_TABS = ['overview', 'report', 'verify', 'map', 'alerts'];
+
+function bootstrapDashboard() {
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('/sw.js').catch((error) => console.warn('[SW] Registration failed:', error));
   }
@@ -43,28 +45,52 @@ document.addEventListener('DOMContentLoaded', () => {
   
   // Initial load
   loadDashboardData();
-});
+}
 
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', bootstrapDashboard);
+} else {
+  bootstrapDashboard();
+}
+
+// =========================================================================
+// 1. Single Page Router
 // =========================================================================
 
 function initRouter() {
   const navButtons = document.querySelectorAll('.nav-btn');
   
   navButtons.forEach(btn => {
-    btn.addEventListener('click', () => {
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
       const tab = btn.getAttribute('data-tab');
-      window.switchTab(tab);
+      if (tab) {
+        window.switchTab(tab);
+      }
     });
   });
 
   // Handle URL hash changes
   const hash = window.location.hash.replace('#', '');
-  if (hash && ['overview', 'verify', 'map', 'alerts'].includes(hash)) {
+  if (hash && VALID_TABS.includes(hash)) {
     window.switchTab(hash);
+  } else {
+    window.switchTab('overview');
   }
+
+  window.addEventListener('hashchange', () => {
+    const currentHash = window.location.hash.replace('#', '');
+    if (currentHash && VALID_TABS.includes(currentHash)) {
+      window.switchTab(currentHash);
+    }
+  });
 }
 
 window.switchTab = (tabName) => {
+  if (!VALID_TABS.includes(tabName)) {
+    tabName = 'overview';
+  }
+
   document.querySelectorAll('.tab-screen').forEach(screen => {
     screen.classList.add('hidden');
   });
@@ -73,16 +99,27 @@ window.switchTab = (tabName) => {
   if (activeScreen) activeScreen.classList.remove('hidden');
   if (tabName === 'map') initLiveMap();
 
-  // Update navigation styles
+  // Update navigation styles for both sidebar and mobile bottom nav
   document.querySelectorAll('.nav-btn').forEach(btn => {
-    if (btn.getAttribute('data-tab') === tabName) {
-      btn.className = 'nav-btn flex items-center gap-3 px-3 py-2.5 rounded-xl bg-surface-high text-primary border-r-4 border-primary transition-all text-left w-full cursor-pointer';
+    const isCurrent = btn.getAttribute('data-tab') === tabName;
+    if (btn.classList.contains('mobile-nav-btn')) {
+      if (isCurrent) {
+        btn.className = 'nav-btn mobile-nav-btn flex flex-col items-center justify-center py-1 text-primary font-bold';
+      } else {
+        btn.className = 'nav-btn mobile-nav-btn flex flex-col items-center justify-center py-1 text-outline hover:text-primary';
+      }
     } else {
-      btn.className = 'nav-btn flex items-center gap-3 px-3 py-2.5 rounded-xl text-outline hover:bg-surface-low transition-all text-left w-full cursor-pointer';
+      if (isCurrent) {
+        btn.className = 'nav-btn flex items-center gap-3 px-3 py-2.5 rounded-xl bg-surface-high text-primary border-r-4 border-primary transition-all text-left w-full cursor-pointer';
+      } else {
+        btn.className = 'nav-btn flex items-center gap-3 px-3 py-2.5 rounded-xl text-outline hover:bg-surface-low transition-all text-left w-full cursor-pointer';
+      }
     }
   });
 
-  window.location.hash = tabName;
+  if (window.location.hash !== `#${tabName}`) {
+    window.history.replaceState(null, '', `#${tabName}`);
+  }
   window.scrollTo({ top: 0, behavior: 'smooth' });
 
   // Refresh tab-specific data if needed
@@ -249,10 +286,12 @@ function renderPendingBadges() {
   const count = state.pendingReports.length;
   const badge1 = document.getElementById('sidebar-pending-badge');
   const badge2 = document.getElementById('verify-pending-badge');
+  const badge3 = document.getElementById('mobile-pending-badge');
   const statPending = document.getElementById('stat-pending-reports');
 
   if (badge1) badge1.textContent = count;
   if (badge2) badge2.textContent = `${count} Pending Review`;
+  if (badge3) badge3.textContent = count;
   if (statPending) statPending.textContent = count;
 }
 
@@ -561,6 +600,26 @@ window.selectMapIncidentById = (id) => {
 
 window.selectMapIncidentDirect = (report) => {
   window.selectMapIncidentById(report.id);
+};
+
+window.selectMapHotspot = (title, location, severity, coverage, level = 'medium') => {
+  const t = document.getElementById('map-inspect-title');
+  const l = document.getElementById('map-inspect-location');
+  const s = document.getElementById('map-inspect-severity');
+  const c = document.getElementById('map-inspect-coverage');
+  const statusEl = document.getElementById('map-inspect-status');
+
+  if (t) t.textContent = title;
+  if (l) l.textContent = location;
+  if (s) s.textContent = `${severity} (${level.toUpperCase()})`;
+  if (c) c.textContent = `${coverage} km²`;
+  if (statusEl) {
+    statusEl.className = `${level === 'critical' ? 'bg-error-container text-[#93000a]' : 'bg-secondary-container text-[#00513a]'} p-3 rounded-xl flex items-center gap-2 text-xs font-mono font-bold`;
+    statusEl.innerHTML = `
+      <span class="material-symbols-outlined text-[18px]">${level === 'critical' ? 'warning' : 'verified'}</span>
+      <span>${level === 'critical' ? 'FLAGGED • Active Investigation' : 'VERIFIED • Anomaly Logged'}</span>
+    `;
+  }
 };
 
 async function initLiveMap() {

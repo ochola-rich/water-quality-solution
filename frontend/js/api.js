@@ -8,6 +8,15 @@
 
 const BASE_URL = window.location.origin || 'http://localhost:3000';
 
+export class ApiError extends Error {
+  constructor(message, status = 500, data = null) {
+    super(message);
+    this.name = 'ApiError';
+    this.status = status;
+    this.data = data;
+  }
+}
+
 async function apiFetch(endpoint, options = {}) {
   const url = endpoint.startsWith('http') ? endpoint : `${BASE_URL}${endpoint}`;
 
@@ -36,7 +45,7 @@ async function apiFetch(endpoint, options = {}) {
     if (!response.ok) {
       // Backend returns errors as { "error": "..." }, not { "message": "..." }
       const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.error || `Request failed with status ${response.status}`);
+      throw new ApiError(errorData.error || `Request failed with status ${response.status}`, response.status, errorData);
     }
     return await response.json();
   } catch (error) {
@@ -133,5 +142,44 @@ export const api = {
 
   async getHealth() {
     return apiFetch('/api/dashboard/health', { method: 'GET' });
+  },
+
+  // Alias for getHealth
+  async getLakeHealth() {
+    return this.getHealth();
+  },
+
+  // Alias for getMapPoints
+  async getDashboardPoints(options = {}) {
+    return this.getMapPoints(options);
+  },
+
+  // Alias for getTrends
+  async getDashboardTrends(days = 7) {
+    return this.getTrends(days);
+  },
+
+  getBaseUrl() {
+    return BASE_URL;
+  },
+
+  async downloadExportCSV(status = 'verified', filename = 'lake_victoria_reports.csv') {
+    const url = `${BASE_URL}/api/dashboard/export?status=${encodeURIComponent(status)}`;
+    const response = await fetch(url, {
+      headers: { 'Accept': 'text/csv' },
+    });
+    if (!response.ok) {
+      throw new ApiError(`Export failed with status ${response.status}`, response.status);
+    }
+    const blob = await response.blob();
+    const blobUrl = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = blobUrl;
+    link.setAttribute('download', filename);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(blobUrl);
+    return true;
   },
 };

@@ -1,7 +1,30 @@
-/**
- * CSV & Telemetry Report Export Utility
- * File: frontend/js/report.js
- */
+export function formatCategory(cat) {
+  if (!cat) return 'General Anomaly';
+  const map = {
+    turbidity: 'Elevated Turbidity',
+    algae: 'Algae Bloom',
+    spill: 'Chemical / Oil Spill',
+    smell: 'Odor / Sewage Incident',
+    other: 'Water Quality Anomaly',
+  };
+  return map[cat.toLowerCase()] || cat.charAt(0).toUpperCase() + cat.slice(1);
+}
+
+export function formatRelativeTime(dateStr) {
+  if (!dateStr) return 'Just now';
+  const now = new Date();
+  const date = new Date(dateStr);
+  const diffSec = Math.floor((now - date) / 1000);
+
+  if (isNaN(diffSec) || diffSec < 60) return 'Just now';
+  const diffMin = Math.floor(diffSec / 60);
+  if (diffMin < 60) return `${diffMin}m ago`;
+  const diffHour = Math.floor(diffMin / 60);
+  if (diffHour < 24) return `${diffHour}h ago`;
+  const diffDay = Math.floor(diffHour / 24);
+  if (diffDay < 30) return `${diffDay}d ago`;
+  return date.toLocaleDateString();
+}
 
 export function exportReportsToCSV(reports, filename = 'lake_victoria_reports.csv') {
   if (!reports || !reports.length) {
