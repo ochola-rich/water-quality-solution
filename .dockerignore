@@ -1,0 +1,11 @@
+.git
+.env
+.env.*
+!.env.example
+**/*.db
+**/*.db-shm
+**/*.db-wal
+backend/uploads
+backend/tmp
+node_modules
+.DS_Store

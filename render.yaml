@@ -1,0 +1,25 @@
+services:
+  - type: web
+    runtime: docker
+    name: guardians-of-the-lake
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /healthz
+    autoDeployTrigger: commit
+    envVars:
+      - key: PORT
+        value: "3000"
+      - key: DB_PATH
+        value: /var/data/guardians.db
+      - key: MIGRATIONS_DIR
+        value: /app/migrations
+      - key: UPLOADS_DIR
+        value: /var/data/uploads
+      - key: STATIC_DIR
+        value: /app/frontend
+      - key: AUTO_MIGRATE
+        value: "true"
+    disk:
+      name: guardians-data
+      mountPath: /var/data
+      sizeGB: 1
