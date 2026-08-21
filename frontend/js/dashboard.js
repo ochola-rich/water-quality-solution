@@ -7,6 +7,32 @@ import { api } from './api.js';
 import { exportReportsToCSV } from './report.js';
 import { wsClient } from './ws-client.js';
 
+// Cache the verifier's location once — the backend requires lat/lng
+// on every vote for the 500m geo-check, so we can't skip this.
+let verifierPosition = null;
+
+async function getVerifierPosition() {
+  if (verifierPosition) return verifierPosition;
+  return new Promise((resolve) => {
+    if (!navigator.geolocation) {
+      verifierPosition = { lat: -0.0917, lng: 34.7680 }; // Kisumu fallback
+      resolve(verifierPosition);
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        verifierPosition = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+        resolve(verifierPosition);
+      },
+      () => {
+        // Permission denied — fall back rather than block voting entirely
+        verifierPosition = { lat: -0.0917, lng: 34.7680 };
+        resolve(verifierPosition);
+      }
+    );
+  });
+}
+
 const SEED_REPORTS = [
   {
     id: 'rep-8492',
@@ -187,17 +213,29 @@ window.selectVerifyReport = (id) => {
   if (doEl) doEl.textContent = `${r.dissolvedOxygen} mg/L`;
 };
 
-window.voteReport = async (id, status) => {
-  try {
-    await api.verifyReport(id, status);
-  } catch (e) {}
+window.voteReport = async (id, uiStatus) => {
+  const vote = uiStatus === 'verified' ? 'confirm' : 'reject';
+  const pos = await getVerifierPosition();
 
-  reports = reports.map(r => r.id === id ? { ...r, status } : r);
-  
+  try {
+    await api.verifyReport(id, { vote, lat: pos.lat, lng: pos.lng });
+  } catch (e) {
+    const fb = document.getElementById('verify-feedback');
+    if (fb) {
+      fb.className = 'p-3.5 rounded-xl font-medium text-xs flex items-center gap-2 bg-error-container text-[#93000a]';
+      fb.innerHTML = `<span class="material-symbols-outlined text-base">error</span> Vote failed: ${e.message}`;
+      fb.classList.remove('hidden');
+      setTimeout(() => fb.classList.add('hidden'), 4000);
+    }
+    return;
+  }
+
+  reports = reports.map(r => r.id === id ? { ...r, status: uiStatus } : r);
+
   const fb = document.getElementById('verify-feedback');
   if (fb) {
-    fb.className = `p-3.5 rounded-xl font-medium text-xs flex items-center gap-2 ${status === 'verified' ? 'bg-secondary-container text-[#00513a]' : 'bg-error-container text-[#93000a]'}`;
-    fb.innerHTML = `<span class="material-symbols-outlined text-base">${status === 'verified' ? 'verified' : 'cancel'}</span> Report ${id} ${status === 'verified' ? 'confirmed and broadcast to telemetry stream.' : 'marked as false positive.'}`;
+    fb.className = `p-3.5 rounded-xl font-medium text-xs flex items-center gap-2 ${uiStatus === 'verified' ? 'bg-secondary-container text-[#00513a]' : 'bg-error-container text-[#93000a]'}`;
+    fb.innerHTML = `<span class="material-symbols-outlined text-base">${uiStatus === 'verified' ? 'verified' : 'cancel'}</span> Report ${id} ${uiStatus === 'verified' ? 'confirmed and broadcast to telemetry stream.' : 'marked as false positive.'}`;
     fb.classList.remove('hidden');
     setTimeout(() => fb.classList.add('hidden'), 4000);
   }

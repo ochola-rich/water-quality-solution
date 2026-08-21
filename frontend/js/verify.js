@@ -5,6 +5,32 @@
 
 import { api } from './api.js';
 
+// Cache the verifier's location once — the backend requires lat/lng
+// on every vote for the 500m geo-check, so we can't skip this.
+let verifierPosition = null;
+
+async function getVerifierPosition() {
+  if (verifierPosition) return verifierPosition;
+  return new Promise((resolve) => {
+    if (!navigator.geolocation) {
+      verifierPosition = { lat: -0.0917, lng: 34.7680 }; // Kisumu fallback
+      resolve(verifierPosition);
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        verifierPosition = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+        resolve(verifierPosition);
+      },
+      () => {
+        // Permission denied — fall back rather than block voting entirely
+        verifierPosition = { lat: -0.0917, lng: 34.7680 };
+        resolve(verifierPosition);
+      }
+    );
+  });
+}
+
 const SEED_REPORTS = [
   {
     id: 'rep-8492',
@@ -124,9 +150,13 @@ function renderFeed() {
 }
 
 window.confirmVote = async (id) => {
+  const pos = await getVerifierPosition();
   try {
-    await api.verifyReport(id, 'verified');
-  } catch (e) {}
+    await api.verifyReport(id, { vote: 'confirm', lat: pos.lat, lng: pos.lng });
+  } catch (e) {
+    showFeedback(`Vote failed: ${e.message}`, 'error');
+    return;
+  }
 
   reports = reports.map(r => r.id === id ? { ...r, status: 'verified' } : r);
   showFeedback(`Report ${id} successfully confirmed and published to the live lake map!`, 'success');
@@ -134,9 +164,13 @@ window.confirmVote = async (id) => {
 };
 
 window.rejectVote = async (id) => {
+  const pos = await getVerifierPosition();
   try {
-    await api.verifyReport(id, 'rejected');
-  } catch (e) {}
+    await api.verifyReport(id, { vote: 'reject', lat: pos.lat, lng: pos.lng });
+  } catch (e) {
+    showFeedback(`Vote failed: ${e.message}`, 'error');
+    return;
+  }
 
   reports = reports.map(r => r.id === id ? { ...r, status: 'rejected' } : r);
   showFeedback(`Report ${id} marked as false positive.`, 'error');
