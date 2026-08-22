@@ -6,7 +6,21 @@
  * (handlers/verify.go, handlers/dashboard.go) — not guessed.
  */
 
-const BASE_URL = window.location.origin || 'http://localhost:3000';
+// Intelligent origin detection: If opened via standard static dev server (port 5500, 8080, 5173, etc.) or file://,
+// target the Go backend on port 3000. If served directly by Go Fiber or deployed, use window.location.origin.
+const isDevFrontendServer = typeof window !== 'undefined' && (
+  !window.location.origin ||
+  window.location.origin === 'null' ||
+  !window.location.origin.startsWith('http') ||
+  window.location.port === '5500' ||
+  window.location.port === '8080' ||
+  window.location.port === '5173' ||
+  window.location.port === '8000'
+);
+
+const BASE_URL = isDevFrontendServer 
+  ? `${window.location.protocol === 'https:' ? 'https:' : 'http:'}//${window.location.hostname || 'localhost'}:3000` 
+  : (window.location.origin || 'http://localhost:3000');
 
 export class ApiError extends Error {
   constructor(message, status = 500, data = null) {
@@ -114,9 +128,6 @@ export const api = {
   },
 
   // GET /api/dashboard/trends?days=7 — array of { date, category, count }
-  // NOTE: there is no backend health-score endpoint. If you want a 0-100
-  // "health score," it has to be computed client-side from this trend data
-  // (e.g. weighting spill/algae/turbidity counts) — not fetched directly.
   async getTrends(days = 7) {
     return apiFetch(`/api/dashboard/trends?days=${days}`, { method: 'GET' });
   },
@@ -157,6 +168,26 @@ export const api = {
   // Alias for getTrends
   async getDashboardTrends(days = 7) {
     return this.getTrends(days);
+  },
+
+  // GET /api/users/leaderboard
+  async getLeaderboard() {
+    return apiFetch('/api/users/leaderboard', { method: 'GET' });
+  },
+
+  // GET /api/users/:id
+  async getUserProfile(id = 1) {
+    return apiFetch(`/api/users/${id}`, { method: 'GET' });
+  },
+
+  // GET /api/rewards/summary
+  async getRewardStats() {
+    return apiFetch('/api/rewards/summary', { method: 'GET' });
+  },
+
+  // GET /api/users/:id/rewards
+  async getUserRewards(id = 1) {
+    return apiFetch(`/api/users/${id}/rewards`, { method: 'GET' });
   },
 
   getBaseUrl() {

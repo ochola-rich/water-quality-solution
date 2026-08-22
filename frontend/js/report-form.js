@@ -140,12 +140,17 @@ async function handleSubmitSuccess(report) {
     window.refreshReports();
   }
 
+  // Award XP & Sats in gaming engine
+  if (window.gameEngine) {
+    window.gameEngine.awardReportSubmission();
+  }
+
   if (report.status === 'flagged') {
     showFeedback(`Report #${report.id} submitted, but flagged for review (unusual submission pattern detected). A verifier will check it manually.`, 'warning');
     return;
   }
 
-  showFeedback(`Report #${report.id} submitted successfully! It's now pending peer verification.`, 'success');
+  showFeedback(`Report #${report.id} submitted successfully! (+200 XP & 50 Sats bounty pending peer verification)`, 'success');
 
   // Run AI assessment and append its advisory as a follow-up — non-blocking,
   // submission already succeeded regardless of whether this call works.
