@@ -134,8 +134,14 @@ func main() {
 	app.Use(logger.New(logger.Config{
 		Format: "[${time}] ${status} - ${latency} ${method} ${path}\n",
 	}))
+	// CORS is scoped to known frontend origins. Override in production with
+	// FRONTEND_ORIGINS (comma-separated), e.g. "https://guardians.example.org".
+	frontendOrigins := os.Getenv("FRONTEND_ORIGINS")
+	if frontendOrigins == "" {
+		frontendOrigins = "http://localhost:8080,http://127.0.0.1:8080,http://localhost:5500,http://127.0.0.1:5500,http://localhost:3000,http://127.0.0.1:3000"
+	}
 	app.Use(cors.New(cors.Config{
-		AllowOrigins: "*",
+		AllowOrigins: frontendOrigins,
 		AllowHeaders: "Origin, Content-Type, Accept, Authorization",
 		AllowMethods: "GET, POST, PUT, DELETE, OPTIONS",
 	}))
