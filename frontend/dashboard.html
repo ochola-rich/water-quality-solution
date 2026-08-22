@@ -75,8 +75,8 @@
         <span>Overview</span>
       </button>
       <button data-tab="report" class="nav-btn flex items-center gap-3 px-3 py-2.5 rounded-xl text-outline hover:bg-surface-low transition-all text-left w-full cursor-pointer">
-      <span class="material-symbols-outlined text-[18px]">add_location_alt</span>
-      <span>Report Pollution</span>
+        <span class="material-symbols-outlined text-[18px]">add_location_alt</span>
+        <span>Report Pollution</span>
       </button>
       <button data-tab="verify" class="nav-btn flex items-center gap-3 px-3 py-2.5 rounded-xl text-outline hover:bg-surface-low transition-all text-left w-full cursor-pointer">
         <span class="material-symbols-outlined text-[18px]">fact_check</span>
@@ -87,15 +87,24 @@
         <span class="material-symbols-outlined text-[18px]">map</span>
         <span>Environmental Map</span>
       </button>
+      <button data-tab="quests" class="nav-btn flex items-center gap-3 px-3 py-2.5 rounded-xl text-outline hover:bg-surface-low transition-all text-left w-full cursor-pointer">
+        <span class="material-symbols-outlined text-[18px] text-amber-600">sports_esports</span>
+        <span>Quests & Game</span>
+        <span class="ml-auto bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full text-[10px] font-bold">XP</span>
+      </button>
       <button data-tab="alerts" class="nav-btn flex items-center gap-3 px-3 py-2.5 rounded-xl text-outline hover:bg-surface-low transition-all text-left w-full cursor-pointer">
         <span class="material-symbols-outlined text-[18px]">notifications_active</span>
         <span>Alerts & Export</span>
       </button>
     </nav>
 
-    <!-- Sidebar Bottom Export Action -->
-    <div class="mt-auto pt-4 border-t border-surface-low">
-      <button id="sidebar-quick-export" class="w-full bg-primary text-white py-2.5 px-4 rounded-xl font-mono text-xs font-bold hover:bg-primary-container transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm">
+    <!-- Sidebar Bottom Actions -->
+    <div class="mt-auto pt-4 border-t border-surface-low space-y-2">
+      <button class="launch-blitz-btn w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white py-2.5 px-4 rounded-xl font-mono text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm">
+        <span class="material-symbols-outlined text-[18px]">videogame_asset</span>
+        <span>Clean-Up Blitz</span>
+      </button>
+      <button id="sidebar-quick-export" class="w-full bg-primary text-white py-2 px-4 rounded-xl font-mono text-xs font-bold hover:bg-primary-container transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm">
         <span class="material-symbols-outlined text-[16px]">download</span>
         <span>Export Data</span>
       </button>
@@ -104,19 +113,48 @@
 
   <!-- Main View Container -->
   <div class="flex-1 flex flex-col min-w-0 md:ml-64 bg-surface-bg">
-    <!-- Top Header -->
-    <header class="h-16 bg-surface-bg border-b border-surface-low flex justify-between items-center px-8 sticky top-0 z-20">
-      <div class="font-headline font-bold text-primary md:hidden">Guardians of the Lake</div>
-      <div class="hidden md:block"></div>
-      <div class="flex items-center gap-4">
-        <!-- LIVE Badge -->
-        <div class="flex items-center gap-1.5 bg-error-container text-[#93000a] px-3 py-1 rounded-full">
-          <span class="w-2 h-2 rounded-full bg-error animate-ping"></span>
-          <span class="font-mono text-[11px] font-bold tracking-wider">● LIVE</span>
+    <!-- Top Header with Gamification HUD -->
+    <header class="h-16 bg-surface-bg border-b border-surface-low flex justify-between items-center px-4 md:px-8 sticky top-0 z-20">
+      <div class="flex items-center gap-3">
+        <div class="font-headline font-bold text-primary md:hidden">Guardians</div>
+        <!-- LIVE Telemetry Badge -->
+        <div id="live-connection-badge" class="flex items-center gap-1.5 bg-secondary-container text-secondary px-3 py-1 rounded-full">
+          <span class="w-2 h-2 rounded-full bg-secondary animate-pulse"></span>
+          <span id="live-connection-text" class="font-mono text-[11px] font-bold tracking-wider">● LIVE</span>
         </div>
-        <button class="p-2 text-outline hover:text-primary rounded-full hover:bg-surface-low"><span class="material-symbols-outlined">notifications</span></button>
-        <button class="p-2 text-outline hover:text-primary rounded-full hover:bg-surface-low"><span class="material-symbols-outlined">settings</span></button>
-        <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80" alt="Avatar" class="w-8 h-8 rounded-full border border-surface-high object-cover" />
+      </div>
+
+      <!-- Gaming HUD in Header -->
+      <div class="flex items-center gap-2 md:gap-3">
+        <!-- Daily Streak Flame -->
+        <div onclick="window.switchTab('quests')" class="flex items-center gap-1 bg-amber-50 border border-amber-200 text-amber-800 px-2.5 py-1 rounded-full font-mono text-[11px] font-bold cursor-pointer hover:bg-amber-100 transition-colors shadow-xs">
+          <span>🔥</span>
+          <span id="hud-streak-count">7d Streak</span>
+        </div>
+
+        <!-- Lightning Sats Balance -->
+        <div onclick="window.switchTab('quests')" class="flex items-center gap-1 bg-secondary-container text-secondary px-3 py-1 rounded-full font-mono text-xs font-bold cursor-pointer hover:opacity-90 transition-opacity shadow-xs">
+          <span class="material-symbols-outlined text-[14px]">bolt</span>
+          <span id="hud-sats-balance">620 Sats</span>
+        </div>
+
+        <!-- Guardian Level & XP Widget -->
+        <div onclick="window.switchTab('quests')" class="hidden lg:flex items-center gap-2 bg-surface-low border border-surface-high px-3 py-1 rounded-full cursor-pointer hover:bg-surface-high transition-colors">
+          <span id="hud-user-level" class="bg-primary text-white font-mono text-[10px] font-bold px-2 py-0.5 rounded-full">Lvl 7</span>
+          <div class="w-16 bg-surface-high rounded-full h-1.5 overflow-hidden">
+            <div id="hud-xp-bar" class="bg-secondary h-1.5 rounded-full transition-all duration-500" style="width: 72%;"></div>
+          </div>
+          <span id="hud-xp-text" class="font-mono text-[10px] text-outline font-bold">1,450 / 2,000 XP</span>
+        </div>
+
+        <!-- Mini-Game Quick Play Button -->
+        <button class="launch-blitz-btn hidden sm:flex items-center gap-1.5 bg-primary hover:bg-primary-container text-white px-3 py-1.5 rounded-xl font-mono text-xs font-bold transition-all cursor-pointer shadow-xs">
+          <span class="material-symbols-outlined text-sm">sports_esports</span>
+          <span>Play</span>
+        </button>
+
+        <button onclick="window.switchTab('quests')" class="p-1.5 text-outline hover:text-primary rounded-full hover:bg-surface-low" title="Achievements"><span class="material-symbols-outlined text-[20px]">military_tech</span></button>
+        <img onclick="window.switchTab('quests')" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80" alt="Avatar" class="w-8 h-8 rounded-full border border-surface-high object-cover cursor-pointer hover:ring-2 hover:ring-primary" />
       </div>
     </header>
 
@@ -133,29 +171,32 @@
         <div class="grid grid-cols-1 md:grid-cols-12 gap-5">
           <!-- Overall Health Score Card (8 Cols) -->
           <div class="md:col-span-8 bg-white rounded-2xl p-6 shadow-sm border border-surface-low flex flex-col md:flex-row items-center justify-between gap-6">
-            <div>
+            <div class="space-y-1">
               <span class="font-mono text-xs text-outline uppercase tracking-wider block mb-1">OVERALL HEALTH SCORE</span>
               <div class="flex items-baseline gap-2">
-                <span id="ov-health-score" class="font-headline text-6xl font-bold text-primary">72</span>
+                <span id="ov-health-score" class="font-headline text-6xl font-bold text-primary">84</span>
                 <span class="text-xl text-outline font-bold">/100</span>
               </div>
-              <div class="flex items-center gap-3 mt-4">
+              <div class="flex items-center gap-3 pt-2">
                 <span class="bg-secondary-container text-secondary px-3 py-1 rounded-full font-mono text-xs font-bold flex items-center gap-1">
-                  <span class="material-symbols-outlined text-xs">trending_up</span> +6% Trend
+                  <span class="material-symbols-outlined text-xs">trending_up</span> +6% Baseline
                 </span>
-                <span class="text-xs text-outline font-medium">Status: <strong class="text-primary font-bold">Moderate</strong></span>
+                <span class="text-xs text-outline font-medium">Status: <strong id="ov-health-status" class="text-primary font-bold">Good</strong></span>
               </div>
+              <p id="ov-health-recommendation" class="text-xs text-outline font-medium pt-2 max-w-md">
+                Water quality parameters are within normal baseline thresholds across Lake Victoria monitoring zones.
+              </p>
             </div>
 
             <!-- Gauge SVG -->
-            <div class="w-40 h-40 relative flex items-center justify-center">
+            <div class="w-40 h-40 relative flex items-center justify-center flex-shrink-0">
               <svg class="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
                 <circle cx="50" cy="50" r="40" fill="none" stroke="#eff4ff" stroke-width="6"></circle>
-                <circle id="ov-gauge-circle" cx="50" cy="50" r="40" fill="none" stroke="#007354" stroke-width="8" stroke-linecap="round" stroke-dasharray="251.32" stroke-dashoffset="70.3"></circle>
+                <circle id="ov-gauge-circle" cx="50" cy="50" r="40" fill="none" stroke="#007354" stroke-width="8" stroke-linecap="round" stroke-dasharray="251.32" stroke-dashoffset="40.2"></circle>
               </svg>
               <div class="absolute inset-0 flex flex-col items-center justify-center">
                 <span class="material-symbols-outlined text-secondary text-3xl">water_drop</span>
-                <span class="font-mono text-xs font-bold text-primary">Stable</span>
+                <span id="ov-gauge-label" class="font-mono text-xs font-bold text-primary">Good</span>
               </div>
             </div>
           </div>
@@ -164,19 +205,19 @@
           <div class="md:col-span-4 grid grid-cols-2 gap-4">
             <div class="bg-white rounded-2xl p-4 shadow-sm border border-surface-low">
               <span class="font-mono text-[11px] text-outline block uppercase">TOTAL REPORTS</span>
-              <div id="ov-total-reports" class="font-headline text-3xl font-bold text-primary mt-2">—</div>
+              <div id="ov-total-reports" class="font-headline text-3xl font-bold text-primary mt-2">142</div>
             </div>
             <div class="bg-white rounded-2xl p-4 shadow-sm border border-surface-low border-l-4 border-l-secondary">
               <span class="font-mono text-[11px] text-outline block uppercase">VERIFIED</span>
-              <div id="ov-verified-reports" class="font-headline text-3xl font-bold text-secondary mt-2">—</div>
+              <div id="ov-verified-reports" class="font-headline text-3xl font-bold text-secondary mt-2">128</div>
             </div>
             <div class="bg-white rounded-2xl p-4 shadow-sm border border-surface-low border-l-4 border-l-[#5c2d00]">
               <span class="font-mono text-[11px] text-outline block uppercase">PENDING</span>
-              <div id="ov-pending-reports" class="font-headline text-3xl font-bold text-[#5c2d00] mt-2">—</div>
+              <div id="ov-pending-reports" class="font-headline text-3xl font-bold text-[#5c2d00] mt-2">14</div>
             </div>
             <div class="bg-white rounded-2xl p-4 shadow-sm border border-surface-low border-l-4 border-l-error">
               <span class="font-mono text-[11px] text-outline block uppercase">ACTIVE ALERTS</span>
-              <div id="ov-active-alerts" class="font-headline text-3xl font-bold text-error mt-2">—</div>
+              <div id="ov-active-alerts" class="font-headline text-3xl font-bold text-error mt-2">3</div>
             </div>
           </div>
 
@@ -188,7 +229,7 @@
                 <span class="material-symbols-outlined text-sm">open_in_full</span> Expand Map
               </button>
             </div>
-            <div class="flex-1 relative bg-cover bg-center" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDaP7M1iz0dKuEyvxUkX12RA23RnlQsJNMkTfUZOTHpE20o-ZEAOjtnMfpsDsuHam8OeZpsYdW9Dpb-dkgjgN2URDx_eK4VKrBaYCxvSPymrSz3QzsYCZ5swYVbOjWIirvRNXO38DxQwUk4XPrS4XoZ3XyOyV5dFcQUe_zxEZ-49MpDUSZ0_imsuasSiguWziaufUwgML_v1lxV5CRx68LuNFTCL9yFxffLk2lLd6C-ibaFMMLTEGoRaA')">
+            <div id="overview-hotspots-container" class="flex-1 relative bg-cover bg-center" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDaP7M1iz0dKuEyvxUkX12RA23RnlQsJNMkTfUZOTHpE20o-ZEAOjtnMfpsDsuHam8OeZpsYdW9Dpb-dkgjgN2URDx_eK4VKrBaYCxvSPymrSz3QzsYCZ5swYVbOjWIirvRNXO38DxQwUk4XPrS4XoZ3XyOyV5dFcQUe_zxEZ-49MpDUSZ0_imsuasSiguWziaufUwgML_v1lxV5CRx68LuNFTCL9yFxffLk2lLd6C-ibaFMMLTEGoRaA')">
               <div onclick="window.switchTab('map')" class="absolute top-[35%] left-[45%] group cursor-pointer">
                 <div class="w-6 h-6 rounded-full bg-error border-2 border-white shadow-lg group-hover:scale-125 transition-transform"></div>
               </div>
@@ -206,7 +247,7 @@
             <div class="px-5 py-3 border-b border-surface-low bg-surface-bg flex justify-between items-center">
               <h3 class="font-headline text-base font-bold text-primary">Recent Activity</h3>
             </div>
-            <div class="flex-1 overflow-y-auto p-4 space-y-3 divide-y divide-surface-low">
+            <div id="overview-activity-stream" class="flex-1 overflow-y-auto p-4 space-y-3 divide-y divide-surface-low">
               <div onclick="window.switchTab('verify')" class="pt-2 flex gap-3 cursor-pointer hover:bg-surface-low p-1.5 rounded transition-colors">
                 <span class="material-symbols-outlined text-error text-base mt-0.5">campaign</span>
                 <div class="text-xs">
@@ -219,20 +260,6 @@
                 <div class="text-xs">
                   <p class="text-primary font-medium">Report #8492 <strong>verified</strong> by local station.</p>
                   <span class="text-outline font-mono text-[10px] mt-1 block">45 mins ago • System</span>
-                </div>
-              </div>
-              <div class="pt-2 flex gap-3 p-1.5">
-                <span class="material-symbols-outlined text-primary text-base mt-0.5">science</span>
-                <div class="text-xs">
-                  <p class="text-primary font-medium">Routine water sample collected at Site A.</p>
-                  <span class="text-outline font-mono text-[10px] mt-1 block">2 hours ago • Field Team</span>
-                </div>
-              </div>
-              <div class="pt-2 flex gap-3 p-1.5">
-                <span class="material-symbols-outlined text-primary text-base mt-0.5">science</span>
-                <div class="text-xs">
-                  <p class="text-primary font-medium">Routine water sample collected at Site B.</p>
-                  <span class="text-outline font-mono text-[10px] mt-1 block">3 hours ago • Field Team</span>
                 </div>
               </div>
             </div>
@@ -535,12 +562,12 @@
                 <span class="font-mono text-[10px] text-outline uppercase block">PREVIEW</span>
                 <h3 class="font-headline text-lg font-bold text-primary mt-0.5">Data Summary</h3>
               </div>
-              <div class="bg-surface-high text-primary px-3 py-1 rounded-full font-mono text-xs font-bold">142 Records Selected</div>
+              <div id="export-records-selected" class="bg-surface-high text-primary px-3 py-1 rounded-full font-mono text-xs font-bold">142 Records Selected</div>
             </div>
 
             <!-- Histogram Chart -->
             <div class="h-64 pt-6 pb-2 px-4 bg-surface-bg rounded-xl border border-surface-low flex flex-col justify-end">
-              <div class="flex items-end justify-around gap-4 h-48 pb-2 border-b border-surface-low">
+              <div id="trend-histogram-bars" class="flex items-end justify-around gap-4 h-48 pb-2 border-b border-surface-low">
                 <div class="flex-1 flex flex-col items-center"><div class="w-full max-w-[64px] bg-surface-high rounded-t-lg h-24"></div></div>
                 <div class="flex-1 flex flex-col items-center"><div class="w-full max-w-[64px] bg-surface-high rounded-t-lg h-36"></div></div>
                 <div class="flex-1 flex flex-col items-center"><div class="w-full max-w-[64px] bg-primary rounded-t-lg h-48 shadow-sm"></div></div>
@@ -556,26 +583,319 @@
             <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
               <div class="bg-surface-bg p-3 rounded-xl border border-surface-low">
                 <span class="text-[10px] font-mono text-outline block">Avg Quality Score</span>
-                <div class="flex items-baseline gap-1 mt-1"><span class="font-headline text-xl font-bold text-secondary">84</span><span class="text-xs text-outline">/100</span></div>
+                <div class="flex items-baseline gap-1 mt-1"><span id="export-avg-score" class="font-headline text-xl font-bold text-secondary">84</span><span class="text-xs text-outline">/100</span></div>
               </div>
               <div class="bg-surface-bg p-3 rounded-xl border border-surface-low">
                 <span class="text-[10px] font-mono text-outline block">Critical Alerts</span>
-                <span class="font-headline text-xl font-bold text-error mt-1 block">3</span>
+                <span id="export-critical-alerts" class="font-headline text-xl font-bold text-error mt-1 block">3</span>
               </div>
               <div class="bg-surface-bg p-3 rounded-xl border border-surface-low">
                 <span class="text-[10px] font-mono text-outline block">Coverage Area</span>
-                <div class="flex items-baseline gap-1 mt-1"><span class="font-headline text-xl font-bold text-primary">120</span><span class="text-xs text-outline font-mono">km²</span></div>
+                <div class="flex items-baseline gap-1 mt-1"><span id="export-coverage-area" class="font-headline text-xl font-bold text-primary">120</span><span class="text-xs text-outline font-mono">km²</span></div>
               </div>
               <div class="bg-surface-bg p-3 rounded-xl border border-surface-low">
-                <span class="text-[10px] font-mono text-outline block">Active Sensors</span>
-                <span class="font-headline text-xl font-bold text-primary mt-1 block">14</span>
+                <span class="text-[10px] font-mono text-outline block">Active Guardians</span>
+                <span id="export-active-sensors" class="font-headline text-xl font-bold text-primary mt-1 block">42</span>
               </div>
             </div>
           </div>
         </div>
       </section>
 
+      <!-- ================= 5. QUESTS & GAMIFICATION SCREEN ================= -->
+      <section id="screen-quests" class="tab-screen hidden space-y-6">
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div>
+            <div class="inline-flex items-center gap-1.5 bg-amber-100 text-amber-900 px-3 py-0.5 rounded-full font-mono text-xs font-bold mb-1">
+              <span>🎮 CITIZEN GAMIFICATION & REWARDS</span>
+            </div>
+            <h2 class="font-headline text-3xl font-bold text-primary">Guardian Quests & Hall of Fame</h2>
+            <p class="text-sm text-outline mt-0.5">Complete environmental monitoring missions, earn XP, and stack Lightning Satoshis.</p>
+          </div>
+          <button class="launch-blitz-btn bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-mono text-xs font-bold px-4 py-3 rounded-xl shadow-lg flex items-center gap-2 cursor-pointer transition-transform hover:scale-105">
+            <span class="material-symbols-outlined text-[18px]">videogame_asset</span>
+            <span>Launch Clean-Up Blitz</span>
+          </button>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+          
+          <!-- Left Column (Hero Card & Quests) (7 Cols) -->
+          <div class="lg:col-span-7 space-y-6">
+            
+            <!-- Hero Guardian Profile Card -->
+            <div class="bg-gradient-to-br from-[#002546] to-[#0d3b66] rounded-3xl p-6 text-white shadow-xl relative overflow-hidden">
+              <div class="absolute -right-8 -bottom-8 w-40 h-40 bg-secondary/20 rounded-full blur-2xl"></div>
+              <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 relative z-10">
+                <div class="flex items-center gap-4">
+                  <div class="relative">
+                    <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=140&q=80" alt="Avatar" class="w-16 h-16 rounded-2xl border-2 border-amber-400 object-cover shadow-md" />
+                    <span class="absolute -bottom-1 -right-1 bg-amber-500 text-black font-mono text-[10px] font-bold px-1.5 py-0.2 rounded-full">⭐ 4.5</span>
+                  </div>
+                  <div>
+                    <h3 id="quest-prof-name" class="font-headline text-xl font-bold text-white leading-tight">Otieno Richard (You)</h3>
+                    <p id="quest-prof-title" class="font-mono text-xs text-amber-300">Senior Lake Sentinel</p>
+                    <div class="flex items-center gap-2 mt-1">
+                      <span id="quest-prof-level" class="bg-white/10 text-white text-[10px] font-mono font-bold px-2 py-0.5 rounded-full border border-white/20">Level 7</span>
+                      <span class="bg-amber-500/20 text-amber-300 text-[10px] font-mono font-bold px-2 py-0.5 rounded-full">🔥 7-Day Streak</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="bg-white/10 backdrop-blur-md rounded-2xl p-3 border border-white/15 text-right w-full sm:w-auto">
+                  <span class="text-[10px] font-mono text-white/70 block uppercase">LIGHTNING BALANCE</span>
+                  <span id="quest-prof-sats" class="font-headline text-2xl font-bold text-amber-400 flex items-center justify-end gap-1">
+                    <span class="material-symbols-outlined text-[20px]">bolt</span> 620 Sats
+                  </span>
+                  <span class="text-[10px] font-mono text-emerald-300 block">Instant Payouts Active</span>
+                </div>
+              </div>
+
+              <!-- XP Progression Bar -->
+              <div class="mt-5 pt-4 border-t border-white/10 space-y-1.5 relative z-10">
+                <div class="flex justify-between text-xs font-mono">
+                  <span class="text-white/80">Rank Progression</span>
+                  <span id="quest-prof-xp-ratio" class="text-amber-300 font-bold">1,450 / 2,000 XP to Level 8</span>
+                </div>
+                <div class="w-full bg-black/30 rounded-full h-2.5 overflow-hidden p-0.5">
+                  <div id="quest-prof-xp-bar" class="bg-gradient-to-r from-emerald-400 to-amber-400 h-1.5 rounded-full transition-all duration-500" style="width: 72%;"></div>
+                </div>
+              </div>
+
+              <!-- Mini Stats Row -->
+              <div class="grid grid-cols-3 gap-2 mt-4 pt-3 border-t border-white/10 text-center font-mono text-xs">
+                <div>
+                  <span class="text-white/60 text-[10px] block">VERIFICATIONS</span>
+                  <span id="quest-prof-verifications" class="font-bold text-white text-sm">38</span>
+                </div>
+                <div>
+                  <span class="text-white/60 text-[10px] block">WATER SAVED</span>
+                  <span id="quest-prof-litres" class="font-bold text-white text-sm">2,850 L</span>
+                </div>
+                <div>
+                  <span class="text-white/60 text-[10px] block">CONSENSUS RATE</span>
+                  <span class="font-bold text-emerald-300 text-sm">98.4%</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Arcade Challenge Banner -->
+            <div class="bg-gradient-to-r from-amber-500/15 via-emerald-500/10 to-transparent border border-amber-200 rounded-3xl p-5 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div class="flex items-center gap-3">
+                <div class="w-12 h-12 rounded-2xl bg-amber-500 text-white flex items-center justify-center flex-shrink-0 shadow-md">
+                  <span class="material-symbols-outlined text-2xl">radar</span>
+                </div>
+                <div>
+                  <h4 class="font-headline font-bold text-primary text-base">Lake Victoria Clean-Up Blitz</h4>
+                  <p class="text-xs text-[#42474f]">Speed challenge: Spot and neutralize water pollution hotspots in 30 seconds!</p>
+                </div>
+              </div>
+              <button class="launch-blitz-btn bg-primary hover:bg-primary-container text-white font-mono text-xs font-bold px-4 py-2.5 rounded-xl shadow-md cursor-pointer whitespace-nowrap">
+                Play Blitz (+XP)
+              </button>
+            </div>
+
+            <!-- Active Quests Section -->
+            <div class="space-y-3">
+              <div class="flex justify-between items-center">
+                <h3 class="font-headline text-lg font-bold text-primary">Daily & Weekly Eco-Quests</h3>
+                <span class="font-mono text-xs text-outline">Refreshes in 14h 22m</span>
+              </div>
+              <div id="quests-list-container" class="space-y-3"></div>
+            </div>
+
+            <!-- Achievement Badges Showcase -->
+            <div class="bg-white rounded-3xl p-6 border border-surface-low shadow-sm space-y-4">
+              <div class="flex justify-between items-center">
+                <h3 class="font-headline text-lg font-bold text-primary">Guardian Badges & Honors</h3>
+                <span class="font-mono text-xs text-secondary font-bold">5 / 6 Unlocked</span>
+              </div>
+              
+              <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                <div class="bg-surface-bg p-3.5 rounded-2xl border border-surface-low text-center space-y-1 hover:border-secondary/50 transition-colors">
+                  <div class="text-3xl">🛡️</div>
+                  <h5 class="font-headline font-bold text-xs text-primary">First Responder</h5>
+                  <p class="text-[10px] text-outline">Reported incident in &lt;15 mins</p>
+                  <span class="inline-block bg-secondary-container text-secondary font-mono text-[9px] font-bold px-2 py-0.5 rounded-full">UNLOCKED</span>
+                </div>
+
+                <div class="bg-surface-bg p-3.5 rounded-2xl border border-surface-low text-center space-y-1 hover:border-secondary/50 transition-colors">
+                  <div class="text-3xl">⚡</div>
+                  <h5 class="font-headline font-bold text-xs text-primary">Sats Stacker</h5>
+                  <p class="text-[10px] text-outline">Earned 500+ Lightning Sats</p>
+                  <span class="inline-block bg-secondary-container text-secondary font-mono text-[9px] font-bold px-2 py-0.5 rounded-full">UNLOCKED</span>
+                </div>
+
+                <div class="bg-surface-bg p-3.5 rounded-2xl border border-surface-low text-center space-y-1 hover:border-secondary/50 transition-colors">
+                  <div class="text-3xl">🔬</div>
+                  <h5 class="font-headline font-bold text-xs text-primary">AI Co-Pilot</h5>
+                  <p class="text-[10px] text-outline">10+ AI predictions validated</p>
+                  <span class="inline-block bg-secondary-container text-secondary font-mono text-[9px] font-bold px-2 py-0.5 rounded-full">UNLOCKED</span>
+                </div>
+
+                <div class="bg-surface-bg p-3.5 rounded-2xl border border-surface-low text-center space-y-1 hover:border-secondary/50 transition-colors">
+                  <div class="text-3xl">🌊</div>
+                  <h5 class="font-headline font-bold text-xs text-primary">Lake Hero</h5>
+                  <p class="text-[10px] text-outline">Protected 2,500+ Litres</p>
+                  <span class="inline-block bg-secondary-container text-secondary font-mono text-[9px] font-bold px-2 py-0.5 rounded-full">UNLOCKED</span>
+                </div>
+
+                <div class="bg-surface-bg p-3.5 rounded-2xl border border-surface-low text-center space-y-1 hover:border-secondary/50 transition-colors">
+                  <div class="text-3xl">🐟</div>
+                  <h5 class="font-headline font-bold text-xs text-primary">Fish Sentinel</h5>
+                  <p class="text-[10px] text-outline">Dunga Beach sanctuary lead</p>
+                  <span class="inline-block bg-secondary-container text-secondary font-mono text-[9px] font-bold px-2 py-0.5 rounded-full">UNLOCKED</span>
+                </div>
+
+                <div class="bg-surface-bg/50 p-3.5 rounded-2xl border border-surface-low text-center space-y-1 opacity-75">
+                  <div class="text-3xl grayscale">🏆</div>
+                  <h5 class="font-headline font-bold text-xs text-primary">GreenTech Winner</h5>
+                  <p class="text-[10px] text-outline">Hackathon Grand Prize</p>
+                  <span class="inline-block bg-surface-high text-outline font-mono text-[9px] font-bold px-2 py-0.5 rounded-full">IN PROGRESS</span>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Right Column (Live Leaderboard Podium & Hall of Fame) (5 Cols) -->
+          <div class="lg:col-span-5 bg-white rounded-3xl p-6 border border-surface-low shadow-sm space-y-5 sticky top-20">
+            <div class="flex justify-between items-center border-b border-surface-low pb-3">
+              <div>
+                <span class="font-mono text-[10px] text-outline uppercase block">COMMUNITY RANKINGS</span>
+                <h3 class="font-headline text-lg font-bold text-primary mt-0.5">Guardian Hall of Fame</h3>
+              </div>
+              <div class="bg-secondary-container text-secondary px-2.5 py-1 rounded-full font-mono text-[11px] font-bold">
+                ⚡ Lightning Live
+              </div>
+            </div>
+
+            <!-- Top 3 Podium Showcase -->
+            <div id="leaderboard-podium-container" class="flex items-end justify-around gap-2 pt-4 pb-2 border-b border-surface-low"></div>
+
+            <!-- Leaderboard Rows Table -->
+            <div class="space-y-1">
+              <div class="flex justify-between text-[11px] font-mono text-outline px-3 pb-1">
+                <span>GUARDIAN</span>
+                <span>REWARDS & REPORTS</span>
+              </div>
+              <div id="leaderboard-rows-container" class="space-y-1 overflow-y-auto max-h-[360px]"></div>
+            </div>
+
+            <div class="p-3 bg-surface-bg rounded-2xl border border-surface-low text-center text-xs font-mono text-outline">
+              Consensus rewards are distributed automatically via LNbits Lightning Network node.
+            </div>
+          </div>
+
+        </div>
+      </section>
+
     </main>
+
+    <!-- ================= ARCADE MINI-GAME MODAL ================= -->
+    <div id="blitz-game-modal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 hidden">
+      <div class="bg-[#00182c] border border-cyan-500/40 rounded-3xl max-w-2xl w-full p-6 text-white shadow-2xl relative overflow-hidden">
+        
+        <!-- Header -->
+        <div class="flex justify-between items-center border-b border-cyan-500/20 pb-4">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-cyan-500/20 border border-cyan-400/40 flex items-center justify-center">
+              <span class="material-symbols-outlined text-cyan-400">radar</span>
+            </div>
+            <div>
+              <h3 class="font-headline text-xl font-bold text-cyan-300">Clean-Up Blitz</h3>
+              <p class="font-mono text-xs text-cyan-100/70">Lake Victoria Telemetry Game</p>
+            </div>
+          </div>
+          <button id="close-blitz-modal" class="p-2 text-cyan-400 hover:text-white rounded-full hover:bg-white/10 cursor-pointer">
+            <span class="material-symbols-outlined">close</span>
+          </button>
+        </div>
+
+        <!-- 1. Start Screen -->
+        <div id="game-start-screen" class="py-8 text-center space-y-6">
+          <div class="max-w-md mx-auto space-y-3">
+            <span class="text-4xl">🌊 🕹️ ⚡</span>
+            <h4 class="font-headline text-2xl font-bold text-white">Spot & Neutralize Anomalies!</h4>
+            <p class="text-xs text-cyan-100/80 font-sans leading-relaxed">
+              Scan the radar grid and tap pollution markers before time expires. Stack combos to boost your reward bounty!
+            </p>
+            <div class="grid grid-cols-4 gap-2 pt-2 text-[11px] font-mono">
+              <div class="bg-red-950/60 p-2 rounded-xl border border-red-500/30">🔴 Spill <strong class="block text-red-400">+100 pts</strong></div>
+              <div class="bg-emerald-950/60 p-2 rounded-xl border border-emerald-500/30">🟢 Algae <strong class="block text-emerald-400">+60 pts</strong></div>
+              <div class="bg-amber-950/60 p-2 rounded-xl border border-amber-500/30">🟤 Silt <strong class="block text-amber-400">+40 pts</strong></div>
+              <div class="bg-yellow-950/60 p-2 rounded-xl border border-yellow-500/30">⚡ Sats <strong class="block text-yellow-400">+200 pts</strong></div>
+            </div>
+          </div>
+
+          <button id="start-blitz-btn" class="bg-gradient-to-r from-cyan-500 to-emerald-500 hover:from-cyan-400 hover:to-emerald-400 text-[#00182c] font-headline font-bold text-base px-8 py-3.5 rounded-2xl shadow-xl hover:scale-105 transition-all cursor-pointer">
+            START 30s BLITZ
+          </button>
+        </div>
+
+        <!-- 2. Playing Screen -->
+        <div id="game-playing-screen" class="hidden space-y-4 pt-4">
+          <!-- Game HUD -->
+          <div class="flex justify-between items-center bg-black/40 border border-cyan-500/20 px-4 py-2.5 rounded-2xl font-mono text-sm">
+            <div>
+              <span class="text-cyan-400 text-xs">SCORE</span>
+              <div id="blitz-hud-score" class="font-bold text-xl text-yellow-300">0</div>
+            </div>
+            <div>
+              <span class="text-cyan-400 text-xs">COMBO</span>
+              <div id="blitz-hud-combo" class="font-bold text-xl text-emerald-400">x1.0</div>
+            </div>
+            <div class="text-right">
+              <span class="text-cyan-400 text-xs">TIME LEFT</span>
+              <div id="blitz-hud-timer" class="font-bold text-xl text-red-400">30s</div>
+            </div>
+          </div>
+
+          <!-- Radar Canvas Grid -->
+          <div class="relative w-full h-[360px] bg-[#001222] rounded-2xl border border-cyan-500/30 overflow-hidden shadow-inner cursor-crosshair">
+            <canvas id="blitz-canvas" class="w-full h-full block"></canvas>
+          </div>
+        </div>
+
+        <!-- 3. Game Over Screen -->
+        <div id="game-over-screen" class="hidden py-6 text-center space-y-5">
+          <div class="space-y-2">
+            <span class="text-4xl">🎉</span>
+            <h4 class="font-headline text-2xl font-bold text-white">Clean-Up Blitz Complete!</h4>
+            <span id="blitz-final-grade" class="inline-block bg-cyan-500/20 border border-cyan-400 text-cyan-300 font-mono text-sm font-bold px-3 py-1 rounded-full">Rank: S+</span>
+          </div>
+
+          <div class="grid grid-cols-3 gap-3 max-w-md mx-auto font-mono">
+            <div class="bg-white/5 p-3.5 rounded-2xl border border-white/10">
+              <span class="text-[10px] text-cyan-200 block">FINAL SCORE</span>
+              <span id="blitz-final-score" class="font-bold text-xl text-white">680</span>
+            </div>
+            <div class="bg-white/5 p-3.5 rounded-2xl border border-white/10">
+              <span class="text-[10px] text-cyan-200 block">XP REWARD</span>
+              <span id="blitz-final-xp" class="font-bold text-xl text-amber-400">+272 XP</span>
+            </div>
+            <div class="bg-emerald-950/60 p-3.5 rounded-2xl border border-emerald-500/40">
+              <span class="text-[10px] text-emerald-200 block">LN SATS</span>
+              <span id="blitz-final-sats" class="font-bold text-xl text-emerald-400">⚡ +82 SATS</span>
+            </div>
+          </div>
+
+          <div class="p-3 bg-black/40 rounded-2xl border border-cyan-500/20 max-w-md mx-auto text-xs font-mono text-cyan-200">
+            Cryptographic Proof: <code class="text-amber-300">0x7f8a...c92b</code> anchored to SHA-256 Ledger
+          </div>
+
+          <div class="flex gap-3 justify-center pt-2">
+            <button id="claim-blitz-payout-btn" class="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-[#00182c] font-headline font-bold text-sm px-6 py-3 rounded-xl shadow-lg cursor-pointer">
+              Claim Sats & XP
+            </button>
+            <button id="restart-blitz-btn" class="bg-white/10 hover:bg-white/20 text-white font-mono text-sm px-5 py-3 rounded-xl border border-white/20 cursor-pointer">
+              Play Again
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </div>
 
     <!-- Mobile Bottom Navigation Bar -->
     <nav class="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-surface-low px-2 py-1.5 flex justify-around items-center z-30 shadow-lg">
@@ -596,6 +916,10 @@
         <span class="material-symbols-outlined text-[20px]">map</span>
         <span class="font-mono text-[10px]">Map</span>
       </button>
+      <button data-tab="quests" class="nav-btn mobile-nav-btn flex flex-col items-center justify-center py-1 text-outline hover:text-primary">
+        <span class="material-symbols-outlined text-[20px] text-amber-600">sports_esports</span>
+        <span class="font-mono text-[10px]">Quests</span>
+      </button>
       <button data-tab="alerts" class="nav-btn mobile-nav-btn flex flex-col items-center justify-center py-1 text-outline hover:text-primary">
         <span class="material-symbols-outlined text-[20px]">notifications_active</span>
         <span class="font-mono text-[10px]">Alerts</span>
@@ -603,6 +927,7 @@
     </nav>
   </div>
 
+  <script type="module" src="js/gaming.js"></script>
   <script type="module" src="js/dashboard.js"></script>
   <script type="module" src="js/report-form.js"></script>
 </body>
